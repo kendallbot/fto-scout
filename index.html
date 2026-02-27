@@ -1605,8 +1605,8 @@ Return this exact JSON structure:
   "novelty": "What makes this invention novel vs prior art, in 1-2 sentences"
 }`;
 
-  // Use callAgent with noTools (no web search needed for extraction)
-  const text = await callAgent(prompt, 'DocExtract', { noTools: true, maxTokens: 3000 });
+  // Use callAgent with noTools and skip cooldown (not part of search sequence)
+  const text = await callAgent(prompt, 'DocExtract', { noTools: true, maxTokens: 3000, skipCooldown: true });
 
   // Extract JSON from the response (handle potential markdown fences)
   let jsonStr = text;
@@ -1696,22 +1696,24 @@ async function processUploadedDocument(file) {
     showPage('search');
     renderAll();
 
-    // Populate search fields
+    // Populate search fields visually
     const invSelect = document.getElementById('search-inv-select');
-    // Re-render the select options to include the new invention
     renderInventionSelect();
     invSelect.value = invId;
 
     document.getElementById('search-claims').value = invention.claims || '';
     document.getElementById('search-keywords').value = invention.keywords || '';
 
-    // Show keyword panel with extracted keywords
     if (invention.keywords) {
       document.getElementById('kw-source-label').textContent = '(from uploaded document)';
     }
 
-    // Auto-trigger FTO search
-    await runFTOSearch();
+    // Auto-trigger FTO search — pass params directly (don't rely on DOM timing)
+    await runFTOSearch({
+      claims: invention.claims || '',
+      keywords: invention.keywords || '',
+      invId: invId
+    });
 
   } catch (err) {
     const currentStep = document.querySelector('.upload-step.active');
@@ -2499,12 +2501,21 @@ Return ONLY a valid JSON object — no prose, no markdown fences, no explanation
 // MAIN FTO SEARCH RUNNER
 
 // ══════════════════════════════════════════════════════════════════════════
-async function runFTOSearch() {
+async function runFTOSearch(autoParams) {
   if (searchRunning) return;
-  const claims = document.getElementById('search-claims').value.trim();
-  const keywords = document.getElementById('search-keywords').value.trim();
+  // Accept direct params from upload flow, or read from DOM
+  const claims = autoParams?.claims || document.getElementById('search-claims').value.trim();
+  const keywords = autoParams?.keywords || document.getElementById('search-keywords').value.trim();
+  const autoInvId = autoParams?.invId || null;
+
   if (!claims && !keywords) { alert('Please enter claim language or keywords to search.'); return; }
   if (!DB.apiKey) { alert('Please add your Anthropic API key in Settings.'); return; }
+
+  // Sync the DOM fields so user can see what's being searched
+  if (autoParams) {
+    document.getElementById('search-claims').value = claims;
+    document.getElementById('search-keywords').value = keywords;
+  }
 
   searchRunning = true;
   consoleLines = [];
@@ -2513,7 +2524,7 @@ async function runFTOSearch() {
   document.getElementById('console-status').style.color = 'var(--accent)';
   document.getElementById('search-results-area').innerHTML = '<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px"><span class="spinner"></span> Agents running...</div>';
 
-  const invId = document.getElementById('search-inv-select').value;
+  const invId = autoInvId || document.getElementById('search-inv-select').value;
   const depth = document.getElementById('search-depth').value;
 
   ['uspto','academic','intl','comp','ws'].forEach(a => setAgentStatus(a, 'idle', '⏳'));
@@ -2544,7 +2555,7 @@ Return ONLY valid JSON — no markdown, no code fences:
   },
   "expanded_search_string": "all original + synonym terms as a comma-separated list",
   "boolean_queries": ["2-3 optimized boolean search strings using OR/AND for patent databases"]
-}`, 'SynonymExpand', { noTools: true, maxTokens: 1500 }
+}`, 'SynonymExpand', { noTools: true, maxTokens: 1500, skipCooldown: true }
     );
 
     // Parse synonym response
@@ -3029,9 +3040,11 @@ async function _callAgentDirect(prompt, agentName, options = {}, retries = 4) {
     .map(b => b.text)
     .join('\n');
 
-  // Wait 25 seconds between calls to stay well under 30k tokens/min
-  consoleLog(agentName || 'system', 'Complete — cooling down before next agent...', 'success');
-  await sleep(25000);
+  // Wait between calls to stay under 30k tokens/min (skip for quick extraction calls)
+  if (!options.skipCooldown) {
+    consoleLog(agentName || 'system', 'Complete — cooling down before next agent...', 'success');
+    await sleep(25000);
+  }
 
   return result;
 }
