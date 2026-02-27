@@ -2863,11 +2863,17 @@ async function callAgent(prompt, agentName, options = {}) {
   return result;
 }
 
-async function _callAgentDirect(prompt, agentName, options = {}, retries = 3) {
+async function _callAgentDirect(prompt, agentName, options = {}, retries = 4) {
+  // Truncate prompt to stay under token limits (roughly 4 chars = 1 token)
+  const maxPromptChars = 8000; // ~2000 tokens input to leave room in 30k/min budget
+  const truncatedPrompt = prompt.length > maxPromptChars
+    ? prompt.substring(0, maxPromptChars) + '\n\n[Content truncated for token limits — focus on the most relevant results]'
+    : prompt;
+
   const body = {
     model: options.model || 'claude-sonnet-4-20250514',
-    max_tokens: options.maxTokens || 4000,
-    messages: [{ role: 'user', content: prompt }]
+    max_tokens: options.maxTokens || 2500,
+    messages: [{ role: 'user', content: truncatedPrompt }]
   };
   // Include web search tool unless explicitly disabled
   if (options.noTools !== true) {
@@ -2891,7 +2897,7 @@ async function _callAgentDirect(prompt, agentName, options = {}, retries = 3) {
 
     // Retry on rate limit (429) or overloaded (529)
     if ((response.status === 429 || response.status === 529 || msg.includes('rate limit')) && retries > 0) {
-      const waitSec = (4 - retries) * 15; // 15s, 30s, 45s
+      const waitSec = (5 - retries) * 20; // 20s, 40s, 60s, 80s
       consoleLog(agentName || 'system', `Rate limited — waiting ${waitSec}s then retrying... (${retries} left)`, 'warn');
       await sleep(waitSec * 1000);
       return _callAgentDirect(prompt, agentName, options, retries - 1);
@@ -2899,14 +2905,17 @@ async function _callAgentDirect(prompt, agentName, options = {}, retries = 3) {
     throw new Error(msg);
   }
 
-  // Small delay after each successful call to stay under rate limits
-  await sleep(2000);
-
   const data = await response.json();
-  return data.content
+  const result = data.content
     .filter(b => b.type === 'text')
     .map(b => b.text)
     .join('\n');
+
+  // Wait 25 seconds between calls to stay well under 30k tokens/min
+  consoleLog(agentName || 'system', 'Complete — cooling down before next agent...', 'success');
+  await sleep(25000);
+
+  return result;
 }
 
 function renderSearchResults(record) {
