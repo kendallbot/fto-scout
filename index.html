@@ -1,0 +1,3929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FTO Scout — Patent Intelligence Platform</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #07080c;
+  --s1: #0e1018;
+  --s2: #141720;
+  --s3: #1c2030;
+  --border: #252a38;
+  --border2: #2e3448;
+  --accent: #00e5c3;
+  --accent-dim: rgba(0,229,195,.12);
+  --accent2: #7b68ee;
+  --accent2-dim: rgba(123,104,238,.12);
+  --warn: #f5c518;
+  --warn-dim: rgba(245,197,24,.12);
+  --danger: #ff5f5f;
+  --danger-dim: rgba(255,95,95,.12);
+  --success: #00e5c3;
+  --text: #dce4f0;
+  --text2: #8892a4;
+  --text3: #4a5568;
+  --mono: 'IBM Plex Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --body: 'DM Sans', sans-serif;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 10%, rgba(0,229,195,.04) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(123,104,238,.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ── LAYOUT ── */
+.app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--s1);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--accent);
+  letter-spacing: -.02em;
+}
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: .12em;
+  margin-top: 2px;
+}
+
+.nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+
+.nav-section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: var(--text3);
+  padding: 12px 18px 4px;
+  text-transform: uppercase;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px;
+  cursor: pointer;
+  border-radius: 0;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all .15s;
+  border-left: 2px solid transparent;
+  position: relative;
+}
+.nav-item:hover { background: var(--s2); color: var(--text); }
+.nav-item.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--danger);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 20px;
+  min-width: 18px;
+  text-align: center;
+}
+.nav-badge.warn { background: var(--warn); color: #000; }
+.nav-badge.accent { background: var(--accent); color: #000; }
+
+.sidebar-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+.api-key-display {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  display: flex; align-items: center; gap: 6px;
+}
+.api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+.api-dot.connected { background: var(--accent); }
+
+/* ── MAIN ── */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex; align-items: center; gap: 16px;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 16px;
+  flex: 1;
+}
+.topbar-actions { display: flex; gap: 8px; }
+
+/* ── CONTENT ── */
+.content { padding: 28px; flex: 1; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: none; cursor: pointer;
+  font-family: var(--body);
+  font-size: 13px; font-weight: 600;
+  transition: all .15s;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+.btn-primary:hover { background: #00ffd5; transform: translateY(-1px); }
+.btn-secondary {
+  background: var(--s3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+.btn-secondary:hover { background: var(--border2); }
+.btn-danger { background: var(--danger-dim); color: var(--danger); border: 1px solid var(--danger); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--s2); color: var(--text); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-icon { padding: 7px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+/* ── INPUTS ── */
+input, textarea, select {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-family: var(--body);
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+  transition: border-color .15s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 80px; }
+label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 5px; letter-spacing: .04em; }
+.form-group { margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── PILLS / TAGS ── */
+.pill {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.pill-green { background: rgba(0,229,195,.15); color: var(--accent); }
+.pill-red { background: rgba(255,95,95,.15); color: var(--danger); }
+.pill-yellow { background: rgba(245,197,24,.15); color: var(--warn); }
+.pill-purple { background: rgba(123,104,238,.15); color: var(--accent2); }
+.pill-gray { background: var(--s3); color: var(--text2); }
+
+/* ── GRID LAYOUTS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* ── STAT CARDS ── */
+.stat-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+.stat-label { font-size: 11px; color: var(--text2); font-weight: 600; letter-spacing: .06em; margin-bottom: 8px; }
+.stat-value { font-family: var(--display); font-size: 28px; font-weight: 800; color: var(--text); }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.stat-accent { color: var(--accent); }
+.stat-warn { color: var(--warn); }
+.stat-danger { color: var(--danger); }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: var(--s2);
+  color: var(--text2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--s2); }
+tbody td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
+
+/* ── PROGRESS BAR ── */
+.progress { height: 4px; background: var(--s3); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width .4s; background: var(--accent); }
+.progress-fill.warn { background: var(--warn); }
+.progress-fill.danger { background: var(--danger); }
+
+/* ── AGENT CONSOLE ── */
+.agent-console {
+  background: #060810;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  overflow: hidden;
+}
+.console-header {
+  background: var(--s2);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+}
+.console-dot { width: 8px; height: 8px; border-radius: 50%; }
+.console-body {
+  padding: 14px;
+  min-height: 120px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.log-line { margin-bottom: 2px; }
+.log-time { color: var(--text3); }
+.log-agent { font-weight: 600; }
+.log-agent.uspto { color: #60a5fa; }
+.log-agent.academic { color: #a78bfa; }
+.log-agent.intl { color: #34d399; }
+.log-agent.competitor { color: #fb923c; }
+.log-agent.whitespace { color: #f472b6; }
+.log-agent.synthesis { color: var(--accent); }
+.log-agent.system { color: var(--text3); }
+.log-msg { color: var(--text); }
+.log-msg.success { color: var(--accent); }
+.log-msg.warn { color: var(--warn); }
+.log-msg.error { color: var(--danger); }
+
+/* ── RISK MATRIX ── */
+.risk-grid { display: flex; flex-direction: column; gap: 8px; }
+.risk-row {
+  display: flex; align-items: stretch; gap: 10px;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.risk-indicator {
+  width: 4px; border-radius: 4px; flex-shrink: 0;
+}
+.risk-indicator.red { background: var(--danger); }
+.risk-indicator.yellow { background: var(--warn); }
+.risk-indicator.green { background: var(--accent); }
+.risk-indicator.gray { background: var(--text3); }
+.risk-content { flex: 1; }
+.risk-claim { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.risk-refs { font-size: 11px; color: var(--text2); }
+.risk-score {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+.risk-score.red { background: var(--danger-dim); color: var(--danger); }
+.risk-score.yellow { background: var(--warn-dim); color: var(--warn); }
+.risk-score.green { background: var(--accent-dim); color: var(--accent); }
+
+/* ── DEADLINE ── */
+.deadline-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--s2);
+  margin-bottom: 8px;
+}
+.deadline-urgency {
+  width: 6px; height: 40px; border-radius: 4px; flex-shrink: 0;
+}
+.deadline-urgency.red { background: var(--danger); }
+.deadline-urgency.yellow { background: var(--warn); }
+.deadline-urgency.green { background: var(--accent); }
+.deadline-info { flex: 1; }
+.deadline-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.deadline-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.deadline-date {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text2);
+  text-align: right;
+}
+.deadline-days {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+}
+.deadline-days.red { color: var(--danger); }
+.deadline-days.yellow { color: var(--warn); }
+.deadline-days.green { color: var(--accent); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--s1);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  width: 680px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+.modal-title {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--s3); border: none; color: var(--text2);
+  width: 28px; height: 28px; border-radius: 6px;
+  cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: var(--border2); color: var(--text); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab {
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: 13px; font-weight: 500;
+  color: var(--text2);
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── INVENTION CARD ── */
+.inv-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color .15s, transform .15s;
+}
+.inv-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.inv-card.selected { border-color: var(--accent); }
+.inv-header { display: flex; align-items: flex-start; gap: 12px; }
+.inv-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--accent-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.inv-meta { flex: 1; }
+.inv-title { font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+.inv-field { font-size: 11px; color: var(--text2); }
+.inv-footer {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--text3);
+}
+.empty-icon { font-size: 48px; margin-bottom: 14px; }
+.empty-title { font-family: var(--display); font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+.empty-desc { font-size: 13px; line-height: 1.7; max-width: 380px; margin: 0 auto 20px; }
+
+/* ── ONBOARDING ── */
+#onboarding {
+  position: fixed; inset: 0; z-index: 2000;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.onboard-card {
+  background: var(--s1);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 40px;
+  width: 520px;
+  max-width: 95vw;
+}
+.onboard-logo {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 32px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.onboard-tagline {
+  font-size: 13px; color: var(--text2);
+  margin-bottom: 28px;
+}
+.onboard-step { display: none; }
+.onboard-step.active { display: block; }
+
+/* ── SEARCH AGENT CARDS ── */
+.agent-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.agent-card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  text-align: center;
+}
+.agent-card .a-icon { font-size: 20px; margin-bottom: 4px; }
+.agent-card .a-name { font-family: var(--mono); font-size: 9px; color: var(--text2); }
+.agent-card .a-status { font-size: 9px; margin-top: 4px; }
+.agent-card.running { border-color: var(--accent); }
+.agent-card.done { border-color: var(--accent); background: var(--accent-dim); }
+.agent-card.error { border-color: var(--danger); }
+
+/* ── COMPETITOR MONITOR ── */
+.competitor-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--s2);
+  margin-bottom: 8px;
+}
+.comp-logo { width: 32px; height: 32px; border-radius: 8px; background: var(--s3); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.comp-info { flex: 1; }
+.comp-name { font-weight: 600; font-size: 13px; }
+.comp-count { font-size: 11px; color: var(--text2); }
+.comp-last { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+/* ── REPORT SECTION ── */
+.report-block {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.report-block-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.pulse { animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* page visibility */
+.page { display: none; }
+.page.active { display: block; }
+
+hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+.text-mono { font-family: var(--mono); }
+.text-muted { color: var(--text2); }
+.text-sm { font-size: 12px; }
+.flex { display: flex; }
+.flex-center { display: flex; align-items: center; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.ml-auto { margin-left: auto; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mt-8 { margin-top: 8px; }
+.w100 { width: 100%; }
+
+/* ── UPLOAD DROPZONE ── */
+.upload-dropzone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  background: var(--s2);
+}
+.upload-dropzone:hover, .upload-dropzone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.upload-dropzone .drop-icon { font-size: 40px; margin-bottom: 12px; }
+.upload-dropzone .drop-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.upload-dropzone .drop-sub { font-size: 12px; color: var(--text2); }
+.upload-dropzone .drop-formats { font-size: 10px; color: var(--text3); margin-top: 8px; font-family: var(--mono); }
+
+/* ── UPLOAD PROGRESS STEPPER ── */
+.upload-steps { display: flex; gap: 4px; margin: 20px 0; }
+.upload-step {
+  flex: 1; padding: 10px 8px; border-radius: var(--radius);
+  background: var(--s2); border: 1px solid var(--border);
+  font-size: 11px; text-align: center; color: var(--text3);
+  transition: all .3s;
+}
+.upload-step.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.upload-step.done { border-color: var(--success); color: var(--success); background: rgba(0,229,195,.08); }
+.upload-step.error { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); }
+.upload-step-num { font-family: var(--mono); font-weight: 700; font-size: 13px; }
+.upload-step-label { margin-top: 2px; }
+
+/* ── UPLOAD PREVIEW ── */
+.upload-preview {
+  max-height: 200px; overflow-y: auto; padding: 12px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  font-family: var(--mono); font-size: 11px; color: var(--text2);
+  line-height: 1.6; white-space: pre-wrap; margin-top: 12px;
+}
+
+.upload-status-msg {
+  font-size: 12px; color: var(--text2); text-align: center;
+  margin-top: 12px; min-height: 20px;
+}
+
+/* ── SEARCH UPLOAD BANNER ── */
+.search-upload-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; margin-bottom: 16px;
+  background: var(--accent-dim); border: 1px solid rgba(0,229,195,.2);
+  border-radius: var(--radius); cursor: pointer; transition: all .2s;
+}
+.search-upload-banner:hover { border-color: var(--accent); background: rgba(0,229,195,.15); }
+</style>
+
+<!-- Document parsing libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(typeof pdfjsLib!=='undefined')pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+</head>
+<body>
+
+<!-- ══ ONBOARDING ══════════════════════════════════════════════════════════ -->
+<div id="onboarding">
+  <div class="onboard-card">
+    <div class="onboard-logo">FTO Scout</div>
+    <div class="onboard-tagline">Patent intelligence for solo inventors, startups &amp; researchers</div>
+
+    <div class="onboard-step active" id="step-1">
+      <div class="card-title">⚙️ Connect Anthropic API</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.7">
+        FTO Scout uses Claude AI to run parallel patent search agents. Your API key is stored locally in your browser — it never leaves your device.
+      </p>
+      <div class="form-group">
+        <label>ANTHROPIC API KEY</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:20px">
+        Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a> · Uses claude-sonnet-4-20250514 with web search
+      </p>
+      <div class="form-group">
+        <label>YOUR NAME (OPTIONAL)</label>
+        <input type="text" id="user-name-input" placeholder="e.g. Kendall Larkin" />
+      </div>
+      <div class="form-group">
+        <label>ENTITY / COMPANY (OPTIONAL)</label>
+        <input type="text" id="user-entity-input" placeholder="e.g. LARKIN IP HOLDINGS LLC" />
+      </div>
+      <button class="btn btn-primary w100" onclick="completeOnboarding()">Launch FTO Scout →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ════════════════════════════════════════════════════════════ -->
+<div class="app" id="main-app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">FTO Scout</div>
+      <div class="logo-sub">PATENT INTELLIGENCE</div>
+    </div>
+    <div class="nav">
+      <div class="nav-section-label">Workspace</div>
+      <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+        <span class="icon">⬛</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('inventions')" id="nav-inventions">
+        <span class="icon">💡</span> Inventions
+        <span class="nav-badge accent" id="inv-count-badge">0</span>
+      </div>
+      <div class="nav-item" onclick="showPage('search')" id="nav-search">
+        <span class="icon">🔍</span> FTO Search
+      </div>
+      <div class="nav-section-label">Monitor</div>
+      <div class="nav-item" onclick="showPage('deadlines')" id="nav-deadlines">
+        <span class="icon">📅</span> Deadlines
+        <span class="nav-badge" id="urgent-badge" style="display:none">!</span>
+      </div>
+      <div class="nav-item" onclick="showPage('competitors')" id="nav-competitors">
+        <span class="icon">👁</span> Competitors
+      </div>
+      <div class="nav-item" onclick="showPage('priorart')" id="nav-priorart">
+        <span class="icon">📚</span> Prior Art Library
+      </div>
+      <div class="nav-section-label">Output</div>
+      <div class="nav-item" onclick="showPage('reports')" id="nav-reports">
+        <span class="icon">📄</span> Reports
+      </div>
+      <div class="nav-item" onclick="showPage('registry')" id="nav-registry">
+        <span class="icon">🌐</span> Public Registry
+      </div>
+      <div class="nav-section-label">Settings</div>
+      <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+        <span class="icon">⚙️</span> Settings
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="api-key-display">
+        <div class="api-dot connected" id="api-status-dot"></div>
+        <span id="api-status-text">API Connected</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportVault()">⬇ Export Vault</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">⬆ Import</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importVault(event)">
+        <button class="btn btn-secondary btn-sm" onclick="openDocUpload()">📎 Upload Doc</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-inv')">+ New Invention</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="grid-4 mb-16" id="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">INVENTIONS</div>
+            <div class="stat-value stat-accent" id="stat-inventions">0</div>
+            <div class="stat-sub">in vault</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">FTO SEARCHES</div>
+            <div class="stat-value" id="stat-searches">0</div>
+            <div class="stat-sub">completed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">URGENT DEADLINES</div>
+            <div class="stat-value stat-danger" id="stat-urgent">0</div>
+            <div class="stat-sub">within 30 days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">PRIOR ART REFS</div>
+            <div class="stat-value stat-warn" id="stat-refs">0</div>
+            <div class="stat-sub">discovered</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <div class="card-title">📅 Upcoming Deadlines</div>
+            <div id="dash-deadlines">
+              <div class="empty-state" style="padding:30px">
+                <div style="font-size:28px;margin-bottom:8px">📅</div>
+                <div style="color:var(--text3);font-size:12px">No deadlines yet — add an invention to track</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card-title">⚡ Recent Activity</div>
+            <div id="activity-feed" style="font-size:12px;color:var(--text2);line-height:2">
+              <div style="color:var(--text3);font-size:12px;padding:30px;text-align:center">No activity yet</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <div class="card-title">🎯 Quick Start</div>
+          <div class="grid-4">
+            <div class="card" style="cursor:pointer;border-color:var(--border2)" onclick="openModal('modal-add-inv')">
+              <div style="font-size:28px;margin-bottom:8px">💡</div>
+              <div style="font-weight:700;margin-bottom:4px">Add Invention</div>
+              <div style="font-size:12px;color:var(--text2)">Add your SCC provisionals or any new invention idea</div>
+            </div>
+            <div class="card" style="cursor:pointer;border-color:var(--border2)" onclick="showPage('search')">
+              <div style="font-size:28px;margin-bottom:8px">🔍</div>
+              <div style="font-weight:700;margin-bottom:4px">Run FTO Search</div>
+              <div style="font-size:12px;color:var(--text2)">Launch 5 parallel agents to search USPTO, WIPO, academic & competitors</div>
+            </div>
+            <div class="card" style="cursor:pointer;border-color:var(--border2)" onclick="showPage('reports')">
+              <div style="font-size:28px;margin-bottom:8px">📄</div>
+              <div style="font-weight:700;margin-bottom:4px">Generate Report</div>
+              <div style="font-size:12px;color:var(--text2)">Export a professional FTO prior art analysis document</div>
+            </div>
+            <div class="card" style="cursor:pointer;border-color:var(--border2)" onclick="openDocUpload()">
+              <div style="font-size:28px;margin-bottom:8px">📎</div>
+              <div style="font-weight:700;margin-bottom:4px">Upload & Analyze</div>
+              <div style="font-size:12px;color:var(--text2)">Upload a PDF or Word invention disclosure — auto-extract and run FTO search</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── INVENTIONS ── -->
+      <div class="page" id="page-inventions">
+        <div id="inventions-list">
+          <div class="empty-state">
+            <div class="empty-icon">💡</div>
+            <div class="empty-title">No inventions yet</div>
+            <div class="empty-desc">Add your first invention to start tracking FTO risk, deadlines, and prior art.</div>
+            <button class="btn btn-primary" onclick="openModal('modal-add-inv')">+ Add First Invention</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FTO SEARCH ── -->
+      <div class="page" id="page-search">
+        <div class="search-upload-banner" onclick="openDocUpload()">
+          <span style="font-size:22px">📎</span>
+          <div>
+            <div style="font-weight:700;font-size:13px;color:var(--accent)">Upload Invention Document</div>
+            <div style="font-size:11px;color:var(--text2)">Drop a PDF, Word, or text file — auto-extract claims and launch FTO search</div>
+          </div>
+          <span style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--mono)">.pdf .docx .txt</span>
+        </div>
+        <div class="grid-2" style="align-items:start;gap:20px">
+          <div>
+            <div class="card">
+              <div class="card-title">🎯 Search Configuration</div>
+              <div class="form-group">
+                <label>SELECT INVENTION</label>
+                <div style="display:flex;gap:8px">
+                  <select id="search-inv-select" style="flex:1" onchange="onInvSelectChange()">
+                    <option value="">— Choose invention —</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" id="auto-fill-btn" onclick="autoFillFromInvention()" title="Auto-fill claims and extract keywords from selected invention">⚡ Auto-fill</button>
+                </div>
+              </div>
+
+              <!-- INTELLIGENT KEYWORD PANEL -->
+              <div id="keyword-panel" style="display:none;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:14px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.06em">⚡ INTELLIGENT KEYWORDS</div>
+                  <button class="btn btn-ghost btn-sm" onclick="extractKeywords()"><span id="kw-spinner" style="display:none" class="spinner"></span> Re-extract</button>
+                </div>
+                <div id="keyword-clusters" style="display:flex;flex-direction:column;gap:8px"></div>
+                <div style="font-size:10px;color:var(--text3);margin-top:8px">Click any keyword to toggle it on/off for search. Claude extracts these from your claims automatically.</div>
+              </div>
+
+              <div class="form-group">
+                <label>CLAIM LANGUAGE</label>
+                <textarea id="search-claims" rows="5" placeholder="Paste your claims here, or select an invention and click ⚡ Auto-fill to load automatically..."></textarea>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px">
+                  SEARCH KEYWORDS
+                  <span style="font-size:9px;color:var(--accent);font-family:var(--mono)" id="kw-source-label"></span>
+                </label>
+                <input type="text" id="search-keywords" placeholder="Auto-extracted from claims, or enter manually..." />
+              </div>
+              <div class="form-group">
+                <label>SEARCH DEPTH</label>
+                <select id="search-depth">
+                  <option value="quick">Quick (USPTO + arXiv only)</option>
+                  <option value="standard" selected>Standard (All 8 agents)</option>
+                  <option value="deep">Deep (All agents + extended + full claim compare)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>AGENTS TO RUN</label>
+                <div style="display:flex;flex-wrap:wrap;gap:6px" id="agent-toggles">
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-uspto" checked> 🏛 USPTO</label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-academic" checked> 📖 Academic</label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-intl" checked> 🌍 WIPO/EPO</label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-comp" checked> 🏢 Competitors</label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-asia" checked> 🌏 CN/JP/KR</label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-standards" checked> 📡 Standards</label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-ws" checked> 🗺 WhiteSpace</label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;color:var(--text2);cursor:pointer"><input type="checkbox" id="toggle-compare" checked> 🔬 Compare</label>
+                </div>
+              </div>
+              <button class="btn btn-primary w100" id="run-search-btn" onclick="runFTOSearch()">
+                🚀 Launch Intelligent FTO Search
+              </button>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+              <div class="card-title">🤖 Agent Status</div>
+              <div class="agent-cards" id="agent-cards">
+                <div class="agent-card" id="agent-uspto"><div class="a-icon">🏛</div><div class="a-name">USPTO</div><div class="a-status text-muted">—</div></div>
+                <div class="agent-card" id="agent-academic"><div class="a-icon">📖</div><div class="a-name">Academic</div><div class="a-status text-muted">—</div></div>
+                <div class="agent-card" id="agent-intl"><div class="a-icon">🌍</div><div class="a-name">WIPO/EPO</div><div class="a-status text-muted">—</div></div>
+                <div class="agent-card" id="agent-comp"><div class="a-icon">🏢</div><div class="a-name">Competitors</div><div class="a-status text-muted">—</div></div>
+                <div class="agent-card" id="agent-asia"><div class="a-icon">🌏</div><div class="a-name">CN/JP/KR</div><div class="a-status text-muted">—</div></div>
+                <div class="agent-card" id="agent-standards"><div class="a-icon">📡</div><div class="a-name">Standards</div><div class="a-status text-muted">—</div></div>
+                <div class="agent-card" id="agent-ws"><div class="a-icon">🗺</div><div class="a-name">WhiteSpace</div><div class="a-status text-muted">—</div></div>
+                <div class="agent-card" id="agent-compare"><div class="a-icon">🔬</div><div class="a-name">Compare</div><div class="a-status text-muted">—</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="agent-console mb-16">
+              <div class="console-header">
+                <div class="console-dot" style="background:#ff5f5f"></div>
+                <div class="console-dot" style="background:#f5c518"></div>
+                <div class="console-dot" style="background:#00e5c3"></div>
+                <span style="margin-left:8px">FTO Agent Console</span>
+                <span id="console-status" style="margin-left:auto;color:var(--text3)">Idle</span>
+              </div>
+              <div class="console-body" id="console-body">
+                <div class="log-line"><span class="log-time">[00:00] </span><span class="log-agent system">SYSTEM </span><span class="log-msg"> FTO Scout ready. Configure search and launch agents.</span></div>
+              </div>
+            </div>
+
+            <div id="search-results-area">
+              <div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">
+                Search results will appear here
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DEADLINES ── -->
+      <div class="page" id="page-deadlines">
+        <div class="flex-center gap-8 mb-16">
+          <div style="flex:1">
+            <div style="font-size:12px;color:var(--text2)">All filing deadlines across your patent portfolio. Red = under 30 days · Yellow = under 90 days.</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="exportCalendar()">📅 Export .ICS</button>
+          <button class="btn btn-secondary btn-sm" onclick="openModal('modal-add-deadline')">+ Add Deadline</button>
+        </div>
+        <div id="deadlines-list">
+          <div class="empty-state">
+            <div class="empty-icon">📅</div>
+            <div class="empty-title">No deadlines tracked</div>
+            <div class="empty-desc">Add an invention with a provisional filing date and deadlines will be automatically calculated.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── COMPETITORS ── -->
+      <div class="page" id="page-competitors">
+        <div class="flex-center gap-8 mb-16">
+          <div style="flex:1;font-size:12px;color:var(--text2)">Monitor competitor patent filings in your technical territory.</div>
+          <button class="btn btn-primary btn-sm" onclick="runCompetitorScan()">🔄 Run Scan Now</button>
+          <button class="btn btn-secondary btn-sm" onclick="openModal('modal-add-competitor')">+ Add Competitor</button>
+        </div>
+        <div id="competitors-list">
+          <div class="empty-state">
+            <div class="empty-icon">👁</div>
+            <div class="empty-title">No competitors monitored</div>
+            <div class="empty-desc">Add companies to watch. FTO Scout will scan their recent patent filings and flag anything that enters your claim territory.</div>
+            <button class="btn btn-secondary" onclick="addDefaultCompetitors()">+ Add Default AI Competitors</button>
+          </div>
+        </div>
+        <div id="competitor-findings" style="margin-top:16px"></div>
+      </div>
+
+      <!-- ── PRIOR ART LIBRARY ── -->
+      <div class="page" id="page-priorart">
+        <div class="flex-center gap-8 mb-16">
+          <input type="text" id="pa-search" placeholder="Search prior art library..." style="max-width:320px" oninput="filterPriorArt(this.value)">
+          <select id="pa-filter-type" style="max-width:160px" onchange="filterPriorArt(document.getElementById('pa-search').value)">
+            <option value="">All types</option>
+            <option value="patent">Patents</option>
+            <option value="academic">Academic</option>
+            <option value="product">Products</option>
+          </select>
+          <select id="pa-filter-risk" style="max-width:160px" onchange="filterPriorArt(document.getElementById('pa-search').value)">
+            <option value="">All risk levels</option>
+            <option value="high">High risk</option>
+            <option value="medium">Medium risk</option>
+            <option value="low">Low risk</option>
+          </select>
+          <button class="btn btn-secondary btn-sm ml-auto" onclick="openModal('modal-add-pa')">+ Add Manually</button>
+        </div>
+        <div id="pa-library-list">
+          <div class="empty-state">
+            <div class="empty-icon">📚</div>
+            <div class="empty-title">Prior art library is empty</div>
+            <div class="empty-desc">Run an FTO search to automatically populate the library, or add references manually.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REPORTS ── -->
+      <div class="page" id="page-reports">
+        <div class="form-group" style="max-width:400px;margin-bottom:20px">
+          <label>SELECT INVENTION FOR REPORT</label>
+          <select id="report-inv-select">
+            <option value="">— Choose invention —</option>
+          </select>
+        </div>
+        <div class="flex-center gap-8 mb-16">
+          <button class="btn btn-primary" onclick="generateReport()">📄 Generate FTO Report</button>
+          <button class="btn btn-ghost" onclick="downloadReport('json')">⬇ JSON</button>
+          <button class="btn btn-ghost" onclick="downloadReport('txt')">⬇ TXT</button>
+        </div>
+        <div id="report-output">
+          <div class="empty-state">
+            <div class="empty-icon">📄</div>
+            <div class="empty-title">No report generated</div>
+            <div class="empty-desc">Select an invention and click Generate to create a professional FTO prior art analysis.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PUBLIC REGISTRY ── -->
+      <div class="page" id="page-registry">
+        <div class="card" style="border-color:var(--accent);margin-bottom:20px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="font-size:24px">🌐</div>
+            <div>
+              <div style="font-weight:700;margin-bottom:4px">Public Invention Registry</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.7">
+                Optionally publish your invention to the FTO Scout public registry. This creates a timestamped public record of prior disclosure (useful for establishing prior art against others), while keeping your full technical details private. Only the title, field, and abstract you provide are shared.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" style="max-width:400px">
+          <label>SELECT INVENTION TO REGISTER</label>
+          <select id="registry-inv-select">
+            <option value="">— Choose invention —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>PUBLIC ABSTRACT (what you want publicly visible)</label>
+          <textarea id="registry-abstract" rows="4" placeholder="A brief, non-confidential description of the invention category and technical field..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="publishToRegistry()">🌐 Publish to Registry</button>
+        <hr class="divider" style="margin:24px 0">
+        <div class="card-title">Recent Public Filings</div>
+        <div id="registry-list">
+          <div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">Loading public registry...</div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS ── -->
+      <div class="page" id="page-settings">
+
+        <!-- DATA SOURCES STATUS PANEL -->
+        <div class="card" style="border-color:var(--accent);margin-bottom:20px">
+          <div class="card-title">🔌 Data Source Connections</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:14px">FTO Scout queries multiple patent databases in parallel. Each source has different coverage. Green = active direct API. Yellow = web search fallback. Red = not connected.</p>
+          <div style="display:flex;flex-direction:column;gap:10px" id="source-status-list">
+
+            <!-- USPTO -->
+            <div class="competitor-item" style="background:var(--s2)">
+              <div class="comp-logo" style="background:rgba(0,229,195,.1);font-size:18px">🏛</div>
+              <div class="comp-info">
+                <div class="comp-name">USPTO PatentSearch API</div>
+                <div class="comp-count">search.patentsview.org · All US granted patents through 12/2024 · Full claims text · CPC classification</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="pill pill-green" id="status-uspto">✓ Active — No key needed</span>
+                <button class="btn btn-ghost btn-sm" onclick="testUSPTO()">Test</button>
+              </div>
+            </div>
+
+            <!-- Lens.org -->
+            <div class="competitor-item" style="background:var(--s2)">
+              <div class="comp-logo" style="background:rgba(123,104,238,.1);font-size:18px">🔭</div>
+              <div class="comp-info">
+                <div class="comp-name">Lens.org Patent + Scholarly API</div>
+                <div class="comp-count">USPTO + EPO + WIPO + arXiv + scholarly in one API · 120+ search fields · Legal status tracking</div>
+                <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+                  <input type="password" id="settings-lens-key" placeholder="Paste Lens.org API token..." style="max-width:280px;font-size:11px;padding:5px 8px" />
+                  <button class="btn btn-secondary btn-sm" onclick="saveLensKey()">Save</button>
+                  <a href="https://www.lens.org/lens/user/subscriptions" target="_blank" class="btn btn-ghost btn-sm">Get Free Key →</a>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="pill" id="status-lens" style="background:var(--warn-dim);color:var(--warn)">⚠ Key Required</span>
+                <button class="btn btn-ghost btn-sm" onclick="testLens()">Test</button>
+              </div>
+            </div>
+
+            <!-- Google Patents -->
+            <div class="competitor-item" style="background:var(--s2)">
+              <div class="comp-logo" style="background:rgba(245,197,24,.1);font-size:18px">🔵</div>
+              <div class="comp-info">
+                <div class="comp-name">Google Patents</div>
+                <div class="comp-count">Widest coverage including pre-grant publications, international families, design patents · No official API exists — FTO Scout uses Claude web search to read Google Patents pages</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="pill" style="background:var(--warn-dim);color:var(--warn)">⚡ Claude Web Search</span>
+              </div>
+            </div>
+
+            <!-- EPO -->
+            <div class="competitor-item" style="background:var(--s2)">
+              <div class="comp-logo" style="background:rgba(96,165,250,.1);font-size:18px">🇪🇺</div>
+              <div class="comp-info">
+                <div class="comp-name">EPO Open Patent Services (OPS)</div>
+                <div class="comp-count">European + PCT filings · ep.epo.org/3.2 · Free registration required at ops.epo.org</div>
+                <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+                  <input type="password" id="settings-epo-key" placeholder="EPO Consumer Key:Secret (key:secret)" style="max-width:280px;font-size:11px;padding:5px 8px" />
+                  <button class="btn btn-secondary btn-sm" onclick="saveEPOKey()">Save</button>
+                  <a href="https://www.epo.org/en/searching-for-patents/data/web-services/ops" target="_blank" class="btn btn-ghost btn-sm">Register Free →</a>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="pill" id="status-epo" style="background:var(--danger-dim);color:var(--danger)">✕ Not Connected</span>
+                <button class="btn btn-ghost btn-sm" onclick="testEPO()">Test</button>
+              </div>
+            </div>
+
+            <!-- arXiv / Semantic Scholar -->
+            <div class="competitor-item" style="background:var(--s2)">
+              <div class="comp-logo" style="background:rgba(52,211,153,.1);font-size:18px">📖</div>
+              <div class="comp-info">
+                <div class="comp-name">arXiv + Semantic Scholar</div>
+                <div class="comp-count">arXiv API is completely free and open · Semantic Scholar API is free · Both queried directly — no key needed for basic access</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="pill pill-green" id="status-arxiv">✓ Active — No key needed</span>
+                <button class="btn btn-ghost btn-sm" onclick="testArxiv()">Test</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="grid-2" style="align-items:start">
+          <div>
+            <div class="card">
+              <div class="card-title">🔑 Anthropic API</div>
+              <div class="form-group">
+                <label>API KEY</label>
+                <input type="password" id="settings-api-key" placeholder="sk-ant-..." />
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Powers the AI analysis agents (synthesis, whitespace, competitor analysis). Get a key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a></div>
+              <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
+            </div>
+            <div class="card" style="margin-top:16px">
+              <div class="card-title">👤 Profile</div>
+              <div class="form-group">
+                <label>YOUR NAME</label>
+                <input type="text" id="settings-name" />
+              </div>
+              <div class="form-group">
+                <label>ENTITY / COMPANY</label>
+                <input type="text" id="settings-entity" />
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="saveProfile()">Save Profile</button>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">🔍 Search Defaults</div>
+              <div class="form-group">
+                <label>DEFAULT COMPETITOR WATCHLIST</label>
+                <textarea id="settings-competitors" rows="4" placeholder="Google, Microsoft, Samsung, Meta, OpenAI, Amazon, Apple, IBM"></textarea>
+              </div>
+              <div class="form-group">
+                <label>DEFAULT SEARCH DEPTH</label>
+                <select id="settings-depth">
+                  <option value="quick">Quick</option>
+                  <option value="standard" selected>Standard</option>
+                  <option value="deep">Deep</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save Settings</button>
+            </div>
+            <div class="card" style="margin-top:16px">
+              <div class="card-title">🗄 Data Management</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-secondary btn-sm w100" onclick="exportVault()">⬇ Export Full Vault (JSON)</button>
+                <button class="btn btn-secondary btn-sm w100" onclick="document.getElementById('import-file').click()">⬆ Import Vault</button>
+                <button class="btn btn-danger btn-sm w100" onclick="clearVault()">🗑 Clear All Data</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div><!-- /app -->
+
+<!-- ══ MODALS ══════════════════════════════════════════════════════════════ -->
+
+<!-- Add Invention -->
+<div class="modal-overlay" id="modal-add-inv">
+  <div class="modal" style="width:720px">
+    <button class="modal-close" onclick="closeModal('modal-add-inv')">✕</button>
+    <div class="modal-title">💡 Add New Invention</div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'inv-tab-basic')">Basic Info</div>
+      <div class="tab" onclick="switchTab(this,'inv-tab-claims')">Claims</div>
+      <div class="tab" onclick="switchTab(this,'inv-tab-filing')">Filing Status</div>
+    </div>
+    <div id="inv-tab-basic">
+      <div class="form-group">
+        <label>INVENTION TITLE *</label>
+        <input type="text" id="inv-title" placeholder="e.g. Symbolic Semantic Encoding System for Pre-Tokenization Compression" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>TECHNICAL FIELD *</label>
+          <input type="text" id="inv-field" placeholder="e.g. Artificial Intelligence / NLP" />
+        </div>
+        <div class="form-group">
+          <label>EMOJI ICON</label>
+          <input type="text" id="inv-icon" placeholder="💡" maxlength="2" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>PLAIN-LANGUAGE SUMMARY *</label>
+        <textarea id="inv-summary" rows="3" placeholder="Describe the core inventive concept in 2-3 sentences..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>KEY TECHNICAL KEYWORDS (comma separated)</label>
+        <input type="text" id="inv-keywords" placeholder="e.g. pre-tokenization, symbolic encoding, codebook, LLM compression" />
+      </div>
+      <div class="form-group">
+        <label>COMPETING PRODUCTS / PRIOR ART TO WATCH</label>
+        <input type="text" id="inv-watch" placeholder="e.g. LLMLingua, PromptCrunch, KV cache systems" />
+      </div>
+    </div>
+    <div id="inv-tab-claims" style="display:none">
+      <div class="form-group">
+        <label>CLAIM DIRECTIONS / KEY CLAIMS</label>
+        <textarea id="inv-claims" rows="8" placeholder="Enter your claim language. Each claim on a new line or as a paragraph. These will be used to run element-by-element FTO risk analysis..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>WHAT MAKES IT NOVEL (your differentiation argument)</label>
+        <textarea id="inv-novel" rows="3" placeholder="What specific combination of elements is not found in any prior art?"></textarea>
+      </div>
+    </div>
+    <div id="inv-tab-filing" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label>FILING STATUS</label>
+          <select id="inv-status">
+            <option value="idea">Idea (Not Filed)</option>
+            <option value="provisional">Provisional Filed</option>
+            <option value="nonprovisional">Non-Provisional Pending</option>
+            <option value="granted">Granted</option>
+            <option value="abandoned">Abandoned</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>PROVISIONAL FILING DATE</label>
+          <input type="date" id="inv-prov-date" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>APPLICATION NUMBER (if filed)</label>
+          <input type="text" id="inv-app-num" placeholder="e.g. 63/XXX,XXX" />
+        </div>
+        <div class="form-group">
+          <label>NON-PROVISIONAL DEADLINE</label>
+          <input type="date" id="inv-np-deadline" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>NOTES</label>
+        <textarea id="inv-notes" rows="3" placeholder="Any additional notes, attorney contacts, related applications..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-inv')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInvention()">Save Invention</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Competitor -->
+<div class="modal-overlay" id="modal-add-competitor">
+  <div class="modal" style="width:480px">
+    <button class="modal-close" onclick="closeModal('modal-add-competitor')">✕</button>
+    <div class="modal-title">🏢 Add Competitor to Watch</div>
+    <div class="form-group">
+      <label>COMPANY / ASSIGNEE NAME *</label>
+      <input type="text" id="comp-name" placeholder="e.g. Google LLC" />
+    </div>
+    <div class="form-group">
+      <label>SEARCH KEYWORDS FOR THEIR FILINGS</label>
+      <input type="text" id="comp-keywords" placeholder="e.g. transformer compression, token reduction, LLM optimization" />
+    </div>
+    <div class="form-group">
+      <label>EMOJI</label>
+      <input type="text" id="comp-icon" placeholder="🏢" maxlength="2" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-competitor')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCompetitor()">Add Competitor</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Prior Art Manually -->
+<div class="modal-overlay" id="modal-add-pa">
+  <div class="modal" style="width:560px">
+    <button class="modal-close" onclick="closeModal('modal-add-pa')">✕</button>
+    <div class="modal-title">📚 Add Prior Art Reference</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>TYPE</label>
+        <select id="pa-type">
+          <option value="patent">Patent</option>
+          <option value="academic">Academic Paper</option>
+          <option value="product">Product / System</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>RISK LEVEL</label>
+        <select id="pa-risk">
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>TITLE / REFERENCE *</label>
+      <input type="text" id="pa-title" placeholder="e.g. US 12,271,696 B1 — Codeword LLM System" />
+    </div>
+    <div class="form-group">
+      <label>ASSIGNEE / AUTHORS</label>
+      <input type="text" id="pa-assignee" placeholder="e.g. Samsung Electronics" />
+    </div>
+    <div class="form-group">
+      <label>URL / DOI</label>
+      <input type="text" id="pa-url" placeholder="https://patents.google.com/..." />
+    </div>
+    <div class="form-group">
+      <label>RELEVANT CLAIMS / ABSTRACT</label>
+      <textarea id="pa-abstract" rows="3" placeholder="What does this reference disclose that's relevant to your invention?"></textarea>
+    </div>
+    <div class="form-group">
+      <label>YOUR DIFFERENTIATION</label>
+      <textarea id="pa-diff" rows="2" placeholder="Why is your invention still patentable over this reference?"></textarea>
+    </div>
+    <div class="form-group">
+      <label>RELATES TO INVENTION</label>
+      <select id="pa-inv-link">
+        <option value="">All inventions</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-pa')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePriorArt()">Add Reference</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invention Detail -->
+<div class="modal-overlay" id="modal-inv-detail">
+  <div class="modal" style="width:780px">
+    <button class="modal-close" onclick="closeModal('modal-inv-detail')">✕</button>
+    <div id="inv-detail-content"></div>
+  </div>
+</div>
+
+<!-- Upload Document -->
+<div class="modal-overlay" id="modal-upload-doc">
+  <div class="modal" style="width:640px">
+    <button class="modal-close" onclick="closeModal('modal-upload-doc')">✕</button>
+    <div class="modal-title">📎 Upload Invention Document</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:16px">
+      Upload a PDF, Word, or text file describing your invention. FTO Scout will extract the content, create an invention record, and automatically launch a full FTO search.
+    </p>
+
+    <div class="upload-dropzone" id="upload-dropzone"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="event.preventDefault();this.classList.remove('drag-over');handleDocDrop(event)"
+         onclick="document.getElementById('doc-file-input').click()">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop your document here</div>
+      <div class="drop-sub">or click to browse files</div>
+      <div class="drop-formats">Supported: .pdf .docx .doc .txt</div>
+    </div>
+    <input type="file" id="doc-file-input" accept=".pdf,.docx,.doc,.txt" style="display:none" onchange="handleDocSelect(event)">
+
+    <div class="upload-steps" id="upload-steps" style="display:none">
+      <div class="upload-step" id="ustep-1">
+        <div class="upload-step-num">1</div>
+        <div class="upload-step-label">Read File</div>
+      </div>
+      <div class="upload-step" id="ustep-2">
+        <div class="upload-step-num">2</div>
+        <div class="upload-step-label">AI Extract</div>
+      </div>
+      <div class="upload-step" id="ustep-3">
+        <div class="upload-step-num">3</div>
+        <div class="upload-step-label">Create Invention</div>
+      </div>
+      <div class="upload-step" id="ustep-4">
+        <div class="upload-step-num">4</div>
+        <div class="upload-step-label">FTO Search</div>
+      </div>
+    </div>
+
+    <div id="upload-preview-area" style="display:none">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-family:var(--mono)">EXTRACTED TEXT PREVIEW</div>
+      <div class="upload-preview" id="upload-preview-text"></div>
+    </div>
+
+    <div class="upload-status-msg" id="upload-status-msg"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════
+let DB = {
+  apiKey: '',
+  profile: { name: '', entity: '' },
+  inventions: [],
+  priorArt: [],
+  competitors: [],
+  searches: [],
+  deadlines: [],
+  settings: { depth: 'standard', defaultCompetitors: 'Google,Microsoft,Samsung,Meta,OpenAI,Amazon,Apple,IBM' },
+  activity: []
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// PERSISTENCE
+// ══════════════════════════════════════════════════════════════════════════
+function save() {
+  try { localStorage.setItem('ftoscout_v1', JSON.stringify(DB)); } catch(e) {}
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem('ftoscout_v1');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      DB = { ...DB, ...saved };
+    }
+  } catch(e) {}
+}
+
+function exportVault() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ftoscout_vault_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  logActivity('Vault exported');
+}
+
+function importVault(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (confirm('Replace all local data with imported vault?')) {
+        DB = { ...DB, ...imported };
+        save(); renderAll();
+        logActivity('Vault imported from file');
+        alert('Vault imported successfully!');
+      }
+    } catch { alert('Invalid vault file.'); }
+  };
+  reader.readAsText(file);
+}
+
+function clearVault() {
+  if (confirm('Delete ALL data? This cannot be undone.')) {
+    DB.inventions = []; DB.priorArt = []; DB.competitors = [];
+    DB.searches = []; DB.deadlines = []; DB.activity = [];
+    save(); renderAll();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DOCUMENT UPLOAD & AUTO-ANALYZE
+// ══════════════════════════════════════════════════════════════════════════
+
+function openDocUpload() {
+  if (!DB.apiKey) { alert('Please add your Anthropic API key in Settings first.'); return; }
+  // Reset modal state
+  document.getElementById('upload-steps').style.display = 'none';
+  document.getElementById('upload-preview-area').style.display = 'none';
+  document.getElementById('upload-status-msg').textContent = '';
+  document.getElementById('upload-dropzone').style.display = '';
+  document.getElementById('doc-file-input').value = '';
+  ['ustep-1','ustep-2','ustep-3','ustep-4'].forEach(id => {
+    const el = document.getElementById(id);
+    el.className = 'upload-step';
+  });
+  openModal('modal-upload-doc');
+}
+
+function handleDocDrop(e) {
+  const file = e.dataTransfer.files[0];
+  if (file) processUploadedDocument(file);
+}
+
+function handleDocSelect(e) {
+  const file = e.target.files[0];
+  if (file) processUploadedDocument(file);
+}
+
+function setUploadStep(step, state) {
+  // state: 'active', 'done', 'error'
+  const el = document.getElementById('ustep-' + step);
+  if (!el) return;
+  el.className = 'upload-step ' + (state === 'active' ? 'active' : state === 'done' ? 'done' : state === 'error' ? 'error' : '');
+}
+
+function setUploadStatus(msg) {
+  document.getElementById('upload-status-msg').innerHTML = msg;
+}
+
+// ── Text extraction from different file types ──
+
+async function extractTextFromPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n\n';
+  }
+  return fullText.trim();
+}
+
+async function extractTextFromDocx(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value.trim();
+}
+
+function extractTextFromTxt(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.trim());
+    reader.onerror = () => reject(new Error('Failed to read text file'));
+    reader.readAsText(file);
+  });
+}
+
+async function extractTextFromFile(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.pdf')) return extractTextFromPDF(file);
+  if (name.endsWith('.docx') || name.endsWith('.doc')) return extractTextFromDocx(file);
+  if (name.endsWith('.txt')) return extractTextFromTxt(file);
+  throw new Error('Unsupported file type. Please use PDF, DOCX, or TXT.');
+}
+
+// ── Claude-powered invention extraction ──
+
+async function extractInventionFromText(rawText) {
+  const truncated = rawText.substring(0, 12000); // stay within token limits
+  const prompt = `You are a patent analyst. I have an invention disclosure document. Extract the following fields from it and return ONLY valid JSON (no markdown, no code fences, no extra text).
+
+DOCUMENT TEXT:
+${truncated}
+
+Return this exact JSON structure:
+{
+  "title": "Concise invention title",
+  "field": "Technical field (e.g. Artificial Intelligence / NLP)",
+  "summary": "2-3 sentence plain-language summary of the core inventive concept",
+  "claims": "Reformatted as patent-style claim language. Include the key independent claim(s) and important dependent claims. If the document doesn't have formal claims, draft 2-3 claims based on the described invention.",
+  "keywords": "comma-separated list of 8-12 key technical keywords for patent searching",
+  "novelty": "What makes this invention novel vs prior art, in 1-2 sentences"
+}`;
+
+  // Use callAgent with noTools (no web search needed for extraction)
+  const text = await callAgent(prompt, 'DocExtract', { noTools: true, maxTokens: 3000 });
+
+  // Extract JSON from the response (handle potential markdown fences)
+  let jsonStr = text;
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) jsonStr = fenceMatch[1];
+
+  // Try to find JSON object in the text
+  const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Claude did not return valid JSON');
+
+  return JSON.parse(jsonMatch[0]);
+}
+
+// ── Full upload orchestration ──
+
+async function processUploadedDocument(file) {
+  const validExts = ['.pdf', '.docx', '.doc', '.txt'];
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (!validExts.includes(ext)) {
+    alert('Unsupported file type. Please use PDF, DOCX, or TXT files.');
+    return;
+  }
+
+  // Show progress UI
+  document.getElementById('upload-dropzone').style.display = 'none';
+  document.getElementById('upload-steps').style.display = 'flex';
+
+  try {
+    // STEP 1: Read & extract text
+    setUploadStep(1, 'active');
+    setUploadStatus(`<span class="spinner"></span> Reading ${file.name}...`);
+
+    const rawText = await extractTextFromFile(file);
+
+    if (!rawText || rawText.length < 50) {
+      throw new Error('Could not extract enough text from the document. It may be an image-only PDF or empty file.');
+    }
+
+    // Show preview
+    document.getElementById('upload-preview-area').style.display = 'block';
+    document.getElementById('upload-preview-text').textContent = rawText.substring(0, 2000) + (rawText.length > 2000 ? '\n\n... [truncated]' : '');
+
+    setUploadStep(1, 'done');
+    setUploadStatus(`<span class="spinner"></span> Extracting invention details with AI... (analyzing ${rawText.length.toLocaleString()} characters)`);
+
+    // STEP 2: Claude extraction
+    setUploadStep(2, 'active');
+    const invention = await extractInventionFromText(rawText);
+
+    setUploadStep(2, 'done');
+    setUploadStatus(`<span class="spinner"></span> Creating invention: "${invention.title}"`);
+
+    // STEP 3: Create invention record
+    setUploadStep(3, 'active');
+    const invId = 'inv_' + Date.now();
+    const invRecord = {
+      id: invId,
+      title: invention.title || 'Untitled Invention',
+      field: invention.field || '',
+      icon: '📎',
+      summary: invention.summary || '',
+      keywords: invention.keywords || '',
+      claims: invention.claims || '',
+      novelty: invention.novelty || '',
+      status: 'idea',
+      provDate: '',
+      npDeadline: '',
+      notes: `Auto-extracted from: ${file.name}\nUpload date: ${new Date().toLocaleString()}`,
+      riskScore: null,
+      searches: [],
+      sourceFile: file.name,
+      sourceText: rawText.substring(0, 20000) // Store for reference
+    };
+
+    DB.inventions.push(invRecord);
+    save();
+    logActivity(`Invention "${invention.title}" auto-created from ${file.name}`);
+
+    setUploadStep(3, 'done');
+    setUploadStatus(`<span class="spinner"></span> Launching FTO search...`);
+
+    // STEP 4: Navigate to search and auto-launch
+    setUploadStep(4, 'active');
+
+    // Close modal and switch to search page
+    closeModal('modal-upload-doc');
+    showPage('search');
+    renderAll();
+
+    // Populate search fields
+    const invSelect = document.getElementById('search-inv-select');
+    // Re-render the select options to include the new invention
+    renderInventionSelect();
+    invSelect.value = invId;
+
+    document.getElementById('search-claims').value = invention.claims || '';
+    document.getElementById('search-keywords').value = invention.keywords || '';
+
+    // Show keyword panel with extracted keywords
+    if (invention.keywords) {
+      document.getElementById('kw-source-label').textContent = '(from uploaded document)';
+    }
+
+    // Auto-trigger FTO search
+    await runFTOSearch();
+
+  } catch (err) {
+    const currentStep = document.querySelector('.upload-step.active');
+    if (currentStep) currentStep.classList.replace('active', 'error');
+    setUploadStatus(`<span style="color:var(--danger)">Error: ${err.message}</span>`);
+    // Re-show dropzone for retry
+    setTimeout(() => {
+      document.getElementById('upload-dropzone').style.display = '';
+    }, 3000);
+  }
+}
+
+// Helper: re-render invention select dropdown (for search page)
+function renderInventionSelect() {
+  const sel = document.getElementById('search-inv-select');
+  if (!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">— Choose invention —</option>';
+  DB.inventions.forEach(inv => {
+    sel.innerHTML += `<option value="${inv.id}">${inv.icon || '💡'} ${inv.title}</option>`;
+  });
+  if (currentVal) sel.value = currentVal;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ONBOARDING
+// ══════════════════════════════════════════════════════════════════════════
+function completeOnboarding() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { alert('Please enter your Anthropic API key.'); return; }
+  DB.apiKey = key;
+  DB.profile.name = document.getElementById('user-name-input').value.trim();
+  DB.profile.entity = document.getElementById('user-entity-input').value.trim();
+  save();
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  initApp();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════
+function initApp() {
+  renderAll();
+  updateApiStatus();
+  populateSelects();
+  loadSettings();
+  renderRegistry();
+}
+
+function updateApiStatus() {
+  const dot = document.getElementById('api-status-dot');
+  const txt = document.getElementById('api-status-text');
+  if (DB.apiKey) {
+    dot.className = 'api-dot connected';
+    txt.textContent = 'API Connected';
+  } else {
+    dot.className = 'api-dot';
+    txt.textContent = 'No API Key';
+  }
+}
+
+function renderAll() {
+  renderDashboard();
+  renderInventions();
+  renderDeadlines();
+  renderCompetitors();
+  renderPriorArt();
+  renderInventionSelect();
+  updateBadges();
+}
+
+function updateBadges() {
+  document.getElementById('inv-count-badge').textContent = DB.inventions.length;
+  const urgent = DB.deadlines.filter(d => daysUntil(d.date) <= 30 && daysUntil(d.date) >= 0).length
+    + DB.inventions.filter(i => i.npDeadline && daysUntil(i.npDeadline) <= 30 && daysUntil(i.npDeadline) >= 0).length;
+  const ub = document.getElementById('urgent-badge');
+  if (urgent > 0) { ub.style.display = ''; ub.textContent = urgent; } else ub.style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════════════
+const PAGE_TITLES = {
+  dashboard:'Dashboard', inventions:'Inventions', search:'FTO Search',
+  deadlines:'Deadline Tracker', competitors:'Competitor Monitor',
+  priorart:'Prior Art Library', reports:'Report Generator',
+  registry:'Public Registry', settings:'Settings'
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id)?.classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_TITLES[id] || id;
+  if (id === 'search') populateSearchSelect();
+  if (id === 'reports') populateReportSelect();
+  if (id === 'registry') { populateRegistrySelect(); renderRegistry(); }
+  if (id === 'priorart') renderPriorArt();
+}
+
+function switchTab(el, tabId) {
+  const modal = el.closest('.modal');
+  modal.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const allTabs = ['inv-tab-basic','inv-tab-claims','inv-tab-filing'];
+  allTabs.forEach(t => { const el2 = document.getElementById(t); if(el2) el2.style.display = 'none'; });
+  const target = document.getElementById(tabId);
+  if (target) target.style.display = 'block';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// INVENTIONS
+// ══════════════════════════════════════════════════════════════════════════
+function saveInvention() {
+  const title = document.getElementById('inv-title').value.trim();
+  if (!title) { alert('Title is required.'); return; }
+
+  const provDate = document.getElementById('inv-prov-date').value;
+  let npDeadline = document.getElementById('inv-np-deadline').value;
+  if (provDate && !npDeadline) {
+    const d = new Date(provDate);
+    d.setFullYear(d.getFullYear() + 1);
+    npDeadline = d.toISOString().split('T')[0];
+  }
+
+  const inv = {
+    id: 'inv_' + Date.now(),
+    title,
+    field: document.getElementById('inv-field').value.trim(),
+    icon: document.getElementById('inv-icon').value.trim() || '💡',
+    summary: document.getElementById('inv-summary').value.trim(),
+    keywords: document.getElementById('inv-keywords').value.trim(),
+    watch: document.getElementById('inv-watch').value.trim(),
+    claims: document.getElementById('inv-claims').value.trim(),
+    novel: document.getElementById('inv-novel').value.trim(),
+    status: document.getElementById('inv-status').value,
+    provDate,
+    appNum: document.getElementById('inv-app-num').value.trim(),
+    npDeadline,
+    notes: document.getElementById('inv-notes').value.trim(),
+    createdAt: new Date().toISOString(),
+    searches: [],
+    riskScore: null
+  };
+
+  DB.inventions.push(inv);
+  save();
+  closeModal('modal-add-inv');
+  clearInvForm();
+  renderAll();
+  populateSelects();
+  logActivity(`Added invention: ${title}`);
+}
+
+function clearInvForm() {
+  ['inv-title','inv-field','inv-icon','inv-summary','inv-keywords','inv-watch',
+   'inv-claims','inv-novel','inv-app-num','inv-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('inv-prov-date').value = '';
+  document.getElementById('inv-np-deadline').value = '';
+  document.getElementById('inv-status').value = 'idea';
+}
+
+function renderInventions() {
+  const el = document.getElementById('inventions-list');
+  if (!DB.inventions.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">💡</div><div class="empty-title">No inventions yet</div><div class="empty-desc">Add your first invention to start tracking FTO risk, deadlines, and prior art.</div><button class="btn btn-primary" onclick="openModal('modal-add-inv')">+ Add First Invention</button></div>`;
+    return;
+  }
+  el.innerHTML = DB.inventions.map(inv => {
+    const days = inv.npDeadline ? daysUntil(inv.npDeadline) : null;
+    const urgency = days !== null ? (days <= 30 ? 'red' : days <= 90 ? 'yellow' : 'green') : 'gray';
+    const paCount = DB.priorArt.filter(p => !p.invId || p.invId === inv.id).length;
+    const searches = DB.searches.filter(s => s.invId === inv.id).length;
+    return `
+    <div class="inv-card" onclick="openInvDetail('${inv.id}')">
+      <div class="inv-header">
+        <div class="inv-icon">${inv.icon}</div>
+        <div class="inv-meta">
+          <div class="inv-title">${inv.title}</div>
+          <div class="inv-field">${inv.field || '—'}</div>
+        </div>
+        <div style="text-align:right">
+          ${statusPill(inv.status)}
+        </div>
+      </div>
+      ${inv.summary ? `<div style="font-size:12px;color:var(--text2);margin-top:10px;line-height:1.6">${inv.summary.substring(0,180)}${inv.summary.length>180?'…':''}</div>` : ''}
+      <div class="inv-footer">
+        <span class="pill pill-gray">🔍 ${searches} searches</span>
+        <span class="pill pill-gray">📚 ${paCount} refs</span>
+        ${inv.npDeadline ? `<span class="pill pill-${urgency}">${days !== null ? days + 'd until NP' : 'NP: '+inv.npDeadline}</span>` : ''}
+        ${inv.riskScore ? `<span class="pill pill-${inv.riskScore.level}">${inv.riskScore.label}</span>` : ''}
+        <button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation();deleteInvention('${inv.id}')">🗑</button>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();launchSearchFor('${inv.id}')">🔍 FTO Search</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function statusPill(status) {
+  const map = {
+    idea: ['gray','Idea'], provisional: ['purple','Provisional'],
+    nonprovisional: ['yellow','NP Pending'], granted: ['green','Granted'],
+    abandoned: ['red','Abandoned']
+  };
+  const [color, label] = map[status] || ['gray', status];
+  return `<span class="pill pill-${color}">${label}</span>`;
+}
+
+function deleteInvention(id) {
+  if (!confirm('Delete this invention?')) return;
+  DB.inventions = DB.inventions.filter(i => i.id !== id);
+  save(); renderAll(); populateSelects();
+}
+
+function openInvDetail(id) {
+  const inv = DB.inventions.find(i => i.id === id);
+  if (!inv) return;
+  const pas = DB.priorArt.filter(p => !p.invId || p.invId === id);
+  const searches = DB.searches.filter(s => s.invId === id);
+  document.getElementById('inv-detail-content').innerHTML = `
+    <div class="modal-title">${inv.icon} ${inv.title}</div>
+    <div class="flex-center gap-8 mb-16">
+      ${statusPill(inv.status)}
+      <span class="pill pill-gray">${inv.field}</span>
+      ${inv.appNum ? `<span class="pill pill-purple">${inv.appNum}</span>` : ''}
+    </div>
+    ${inv.summary ? `<div class="report-block"><div class="report-block-title">Summary</div><div style="font-size:13px;line-height:1.7">${inv.summary}</div></div>` : ''}
+    ${inv.claims ? `<div class="report-block"><div class="report-block-title">Claims</div><div style="font-size:12px;font-family:var(--mono);line-height:1.8;white-space:pre-wrap">${inv.claims}</div></div>` : ''}
+    ${inv.novel ? `<div class="report-block"><div class="report-block-title">Novelty Argument</div><div style="font-size:13px;line-height:1.7">${inv.novel}</div></div>` : ''}
+    <div class="grid-2" style="margin-top:12px">
+      <div class="report-block"><div class="report-block-title">Filing Timeline</div>
+        <div style="font-size:12px;line-height:2">
+          ${inv.provDate ? `<div>📅 Provisional: <b>${inv.provDate}</b></div>` : ''}
+          ${inv.npDeadline ? `<div>⏰ NP Deadline: <b style="color:${daysUntil(inv.npDeadline)<=30?'var(--danger)':daysUntil(inv.npDeadline)<=90?'var(--warn)':'var(--accent)'}">${inv.npDeadline} (${daysUntil(inv.npDeadline)}d)</b></div>` : ''}
+        </div>
+      </div>
+      <div class="report-block"><div class="report-block-title">Search History</div>
+        <div style="font-size:12px;color:var(--text2)">${searches.length ? searches.map(s=>`<div>🔍 ${s.date?.substring(0,10)} — ${s.agentCount} agents</div>`).join('') : 'No searches run yet'}</div>
+      </div>
+    </div>
+    ${pas.length ? `<div class="report-block" style="margin-top:12px"><div class="report-block-title">Prior Art References (${pas.length})</div>${pas.map(p=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)"><span class="pill pill-${p.risk==='high'?'red':p.risk==='medium'?'yellow':'green'} text-sm">${p.risk}</span> <b>${p.title}</b> <span style="color:var(--text2)">${p.assignee||''}</span></div>`).join('')}</div>` : ''}
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-inv-detail')">Close</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-inv-detail');launchSearchFor('${id}')">🔍 Run FTO Search</button>
+    </div>
+  `;
+  openModal('modal-inv-detail');
+}
+
+function launchSearchFor(id) {
+  showPage('search');
+  document.getElementById('search-inv-select').value = id;
+  const inv = DB.inventions.find(i => i.id === id);
+  if (inv) {
+    if (inv.claims) document.getElementById('search-claims').value = inv.claims;
+    if (inv.keywords) document.getElementById('search-keywords').value = inv.keywords;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FTO SEARCH ENGINE
+// ══════════════════════════════════════════════════════════════════════════
+let searchRunning = false;
+let consoleLines = [];
+
+function consoleLog(agent, msg, type='') {
+  const time = new Date().toTimeString().substring(0,8);
+  const line = `<div class="log-line"><span class="log-time">[${time}] </span><span class="log-agent ${agent}">${agent.toUpperCase().padEnd(10)}</span><span class="log-msg ${type}"> ${msg}</span></div>`;
+  consoleLines.push(line);
+  const body = document.getElementById('console-body');
+  body.innerHTML = consoleLines.join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+function setAgentStatus(id, status, emoji) {
+  const card = document.getElementById('agent-' + id);
+  if (!card) return;
+  card.className = 'agent-card ' + (status === 'running' ? 'running' : status === 'done' ? 'done' : status === 'error' ? 'error' : '');
+  card.querySelector('.a-status').textContent = emoji;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// USPTO PATENTSEARCH API — DIRECT GOVERNMENT DATABASE CONNECTION
+// Base: https://search.patentsview.org/api/v1/
+// No key required. Updated through 12/31/2024.
+// ══════════════════════════════════════════════════════════════════════════
+
+const USPTO_BASE = 'https://search.patentsview.org/api/v1';
+
+async function searchUSPTODirect(keywords, options = {}) {
+  const { size = 10, dateFrom = '2018-01-01', assignees = [] } = options;
+
+  // Build keyword terms from comma-separated input
+  const terms = keywords.split(',').map(k => k.trim()).filter(Boolean).join(' ');
+
+  // Build query — text search across title + abstract
+  const q = {
+    _and: [
+      { _text_any: { patent_title: terms } },
+      { _gte: { patent_date: dateFrom } }
+    ]
+  };
+
+  // If assignee filter provided, add it
+  if (assignees.length) {
+    q._and.push({ _text_any: { 'assignees_at_grant.assignee_organization': assignees.join(' ') } });
+  }
+
+  const fields = [
+    'patent_id', 'patent_title', 'patent_date', 'patent_year',
+    'patent_abstract', 'patent_num_claims', 'patent_type',
+    'assignees_at_grant.assignee_organization',
+    'inventors_at_grant.inventor_name_first',
+    'inventors_at_grant.inventor_name_last',
+    'cpc_at_issue.cpc_group_id',
+    'application.filing_date'
+  ];
+
+  const url = `${USPTO_BASE}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`USPTO API error: ${resp.status}`);
+  const data = await resp.json();
+  return data.patents || [];
+}
+
+async function searchUSPTOAbstract(keywords, options = {}) {
+  const { size = 10, dateFrom = '2018-01-01' } = options;
+  const terms = keywords.split(',').map(k => k.trim()).filter(Boolean).join(' ');
+
+  const q = {
+    _and: [
+      { _text_any: { patent_abstract: terms } },
+      { _gte: { patent_date: dateFrom } }
+    ]
+  };
+
+  const fields = [
+    'patent_id', 'patent_title', 'patent_date',
+    'patent_abstract', 'patent_num_claims',
+    'assignees_at_grant.assignee_organization',
+    'application.filing_date'
+  ];
+
+  const url = `${USPTO_BASE}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`USPTO API error: ${resp.status}`);
+  const data = await resp.json();
+  return data.patents || [];
+}
+
+async function searchUSPTOByAssignee(assigneeName, keywords, options = {}) {
+  const { size = 10, dateFrom = '2021-01-01' } = options;
+  const terms = keywords.split(',').map(k => k.trim()).filter(Boolean).join(' ');
+
+  const q = {
+    _and: [
+      { _text_any: { 'assignees_at_grant.assignee_organization': assigneeName } },
+      { _text_any: { patent_abstract: terms } },
+      { _gte: { patent_date: dateFrom } }
+    ]
+  };
+
+  const fields = [
+    'patent_id', 'patent_title', 'patent_date',
+    'patent_abstract', 'assignees_at_grant.assignee_organization',
+    'application.filing_date'
+  ];
+
+  const url = `${USPTO_BASE}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
+
+  const resp = await fetch(url);
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return data.patents || [];
+}
+
+function formatUSPTOPatents(patents) {
+  if (!patents.length) return 'No patents found matching these criteria in USPTO database.';
+  return patents.map((p, i) => {
+    const assignee = p.assignees_at_grant?.[0]?.assignee_organization || 'Unknown';
+    const filingDate = p.application?.[0]?.filing_date || '—';
+    const cpc = p.cpc_at_issue?.[0]?.cpc_group_id || '—';
+    const abstract = p.patent_abstract ? p.patent_abstract.substring(0, 300) + '...' : 'No abstract';
+    return [
+      `[${i+1}] US${p.patent_id}`,
+      `  Title: ${p.patent_title}`,
+      `  Assignee: ${assignee}`,
+      `  Grant Date: ${p.patent_date} | Filed: ${filingDate}`,
+      `  Claims: ${p.patent_num_claims || '?'} | CPC: ${cpc}`,
+      `  URL: https://patents.google.com/patent/US${p.patent_id}`,
+      `  Abstract: ${abstract}`,
+    ].join('\n');
+  }).join('\n\n');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// LENS.ORG API — OPTIONAL (user provides key)
+// ══════════════════════════════════════════════════════════════════════════
+async function searchLens(keywords, lensKey) {
+  if (!lensKey) return null;
+  const body = {
+    query: { query_string: { query: keywords, fields: ['title', 'abstract', 'claim.text'] } },
+    size: 10,
+    sort: [{ 'year_published': 'desc' }],
+    include: ['lens_id', 'title', 'abstract', 'applicant', 'inventor', 'year_published',
+              'publication_number', 'jurisdiction', 'legal_status.granted']
+  };
+  try {
+    const resp = await fetch('https://api.lens.org/patent/search', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${lensKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.data || [];
+  } catch { return null; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INTELLIGENT KEYWORD EXTRACTION ENGINE
+// ══════════════════════════════════════════════════════════════════════════
+
+function onInvSelectChange() {
+  const invId = document.getElementById('search-inv-select').value;
+  const btn = document.getElementById('auto-fill-btn');
+  if (invId) {
+    btn.style.color = 'var(--accent)';
+    btn.style.borderColor = 'var(--accent)';
+  } else {
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  }
+}
+
+function autoFillFromInvention() {
+  const invId = document.getElementById('search-inv-select').value;
+  if (!invId) { alert('Select an invention first.'); return; }
+  const inv = DB.inventions.find(i => i.id === invId);
+  if (!inv) return;
+  if (inv.claims) document.getElementById('search-claims').value = inv.claims;
+  if (inv.keywords) {
+    document.getElementById('search-keywords').value = inv.keywords;
+    document.getElementById('kw-source-label').textContent = '(from invention)';
+  }
+  extractKeywords();
+}
+
+async function extractKeywords() {
+  const claims = document.getElementById('search-claims').value.trim();
+  if (!claims || !DB.apiKey) return;
+
+  const panel = document.getElementById('keyword-panel');
+  const spinner = document.getElementById('kw-spinner');
+  panel.style.display = 'block';
+  spinner.style.display = 'inline-block';
+  document.getElementById('keyword-clusters').innerHTML = '<div style="color:var(--text3);font-size:11px">Extracting keywords...</div>';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': DB.apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 800,
+        messages: [{
+          role: 'user',
+          content: `You are a patent search specialist. Extract optimized search keywords from these patent claims for use in USPTO, Google Patents, and academic database searches.
+
+CLAIMS:
+${claims}
+
+Return ONLY a JSON object with this exact structure — no other text:
+{
+  "core_concepts": ["term1", "term2", "term3"],
+  "technical_methods": ["method1", "method2"],
+  "claim_elements": ["element1", "element2", "element3"],
+  "cpc_classes": ["G06N3/00", "G06F40/00"],
+  "search_string": "optimized AND search OR string for database queries",
+  "competitor_terms": ["company or product name to watch"],
+  "prior_art_risk_terms": ["terms most likely to find blocking prior art"]
+}`
+        }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '{}';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const kw = JSON.parse(clean);
+    window._extractedKeywords = kw;
+
+    // Build the primary search string
+    const allTerms = [
+      ...(kw.core_concepts || []),
+      ...(kw.technical_methods || []),
+      ...(kw.claim_elements || [])
+    ];
+    document.getElementById('search-keywords').value = allTerms.join(', ');
+    document.getElementById('kw-source-label').textContent = '(AI-extracted)';
+
+    // Render clusters
+    const clusters = [
+      { label: '🎯 Core Concepts', key: 'core_concepts', color: 'var(--accent)' },
+      { label: '⚙️ Technical Methods', key: 'technical_methods', color: 'var(--accent2)' },
+      { label: '🔩 Claim Elements', key: 'claim_elements', color: 'var(--warn)' },
+      { label: '📁 CPC Classes', key: 'cpc_classes', color: '#60a5fa' },
+      { label: '⚠️ Risk Terms', key: 'prior_art_risk_terms', color: 'var(--danger)' },
+      { label: '🏢 Competitor Terms', key: 'competitor_terms', color: '#fb923c' },
+    ];
+
+    document.getElementById('keyword-clusters').innerHTML = clusters.map(c => {
+      const terms = kw[c.key] || [];
+      if (!terms.length) return '';
+      return `<div>
+        <div style="font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.08em;margin-bottom:4px">${c.label}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${terms.map(t => `<span class="kw-pill" onclick="toggleKeyword(this)" data-term="${t}" style="
+            display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;
+            border:1px solid ${c.color}33;background:${c.color}15;color:${c.color};
+            font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .15s;
+            user-select:none
+          ">${t}</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+    if (kw.cpc_classes?.length) {
+      consoleLog('system', `CPC classes identified: ${kw.cpc_classes.join(', ')}`);
+    }
+  } catch(e) {
+    document.getElementById('keyword-clusters').innerHTML = `<div style="color:var(--danger);font-size:11px">Extraction failed: ${e.message}</div>`;
+  }
+  spinner.style.display = 'none';
+}
+
+function toggleKeyword(el) {
+  const term = el.dataset.term;
+  const kwInput = document.getElementById('search-keywords');
+  const current = kwInput.value.split(',').map(k => k.trim()).filter(Boolean);
+  const idx = current.indexOf(term);
+  if (idx >= 0) {
+    current.splice(idx, 1);
+    el.style.opacity = '0.35';
+    el.style.textDecoration = 'line-through';
+  } else {
+    current.push(term);
+    el.style.opacity = '1';
+    el.style.textDecoration = 'none';
+  }
+  kwInput.value = current.join(', ');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ASIAN PATENT OFFICE AGENTS (CNIPA / JPO / KIPO)
+// ══════════════════════════════════════════════════════════════════════════
+// Note: CNIPA, JPO, and KIPO do not have open CORS-accessible APIs.
+// We use Claude web search to query their English-language interfaces:
+// - CNIPA: pss-system.cponline.cnipa.gov.cn (English search)
+// - J-PlatPat (JPO): j-platpat.inpit.go.jp
+// - KIPO: engdarts.kipris.or.kr
+// Plus Google Patents filtered by country (CN, JP, KR)
+
+function buildAsiaSearchPrompt(claims, keywords) {
+  return `You are an Asian patent search specialist performing FTO analysis.
+
+INVENTION CLAIMS:
+${claims}
+
+KEYWORDS: ${keywords}
+
+Search for patent filings from Asian patent offices that may affect freedom to operate:
+
+1. CNIPA (China) — Search Google Patents filtered to CN jurisdiction AND pss-system.cponline.cnipa.gov.cn
+   - Key Chinese AI companies to check: Alibaba, Baidu, Tencent, Huawei, ByteDance, Xiaomi, Sensetime
+   - Look for patents filed 2019-2025 on NLP compression, symbolic encoding, transformer optimization
+
+2. JPO (Japan) — Search Google Patents filtered to JP jurisdiction AND j-platpat.inpit.go.jp
+   - Key Japanese companies: NTT, Fujitsu, Sony, NEC, Toyota Research
+   - Look for patents on language model compression, text encoding systems
+
+3. KIPO (Korea) — Search Google Patents filtered to KR jurisdiction
+   - Key Korean companies: Samsung, LG, Kakao, Naver, KAIST
+   - Samsung in particular has extensive AI compression patent portfolio
+
+For each filing found:
+- Patent/application number with country prefix (CN, JP, KR)
+- Title (English if available)
+- Assignee/applicant
+- Filing date
+- Whether it's part of a US family (has a corresponding US application)
+- Specific overlap with the invention claims
+- Risk level: HIGH/MEDIUM/LOW
+
+Conclude with: which Asian jurisdiction poses the most risk, and are there any Chinese/Japanese/Korean patents that could block US market entry if they have US counterparts.`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// STANDARDS BODY SEARCH AGENT
+// ══════════════════════════════════════════════════════════════════════════
+// Searches: IETF RFCs, IEEE standards, W3C specs, ISO/IEC docs, MPEG specs
+// These count as prior art (§ 102) if published before filing date
+
+function buildStandardsSearchPrompt(claims, keywords) {
+  return `You are a technical standards prior art specialist.
+
+INVENTION CLAIMS:
+${claims}
+
+KEYWORDS: ${keywords}
+
+Standards body documents (RFCs, IEEE standards, W3C specs, ISO/IEC documents) count as prior art under 35 U.S.C. § 102 if published before the patent filing date. Search for relevant published standards.
+
+Search these sources:
+1. IETF RFCs (datatracker.ietf.org) — especially HTTP compression (RFC 7932 Brotli, RFC 7541 HPACK, RFC 1952 GZIP), data compression RFCs
+2. IEEE Xplore Standards (standards.ieee.org) — IEEE 1857 (video compression), any NLP/AI standards
+3. W3C Specifications (w3.org/TR) — compression algorithms, encoding specs, web standards
+4. ISO/IEC JTC1 (iso.org) — ISO/IEC 23001 (compression), AI standards (ISO/IEC 42001)
+5. MPEG standards (mpeggroup.org) — MPEG-7, neural compression standards
+6. ECMA/TC39 — JavaScript compression, encoding standards
+7. OpenAI/Anthropic/Google published technical specifications — any published encoding specs
+
+For each standard found:
+- Standard number (RFC XXXX, IEEE XXX.X, W3C TR/...)  
+- Title and publication date
+- What technical concept it describes that overlaps with the claims
+- Whether it constitutes prior art (published before your provisional filing date)
+- Risk level: HIGH/MEDIUM/LOW
+
+This is especially important because a published standard describing your core technique, even if it's not a patent, can prevent you from getting a patent.`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CLAIM COMPARISON ENGINE
+// Compares your claims element-by-element against found patents
+// ══════════════════════════════════════════════════════════════════════════
+
+async function runClaimComparison(claims, allPatentResults, invId) {
+  const inv = invId ? DB.inventions.find(i => i.id === invId) : null;
+
+  // Step 1: Extract claim elements and top patents as structured JSON
+  const structurePrompt = `You are a patent claim analyst. Extract structured data for a claim comparison matrix.
+
+MY INVENTION CLAIMS:
+${claims}
+
+PATENT SEARCH RESULTS (from multiple databases):
+${allPatentResults.substring(0, 9000)}
+
+Return ONLY a valid JSON object — no prose, no markdown fences, no explanation:
+{
+  "claim_elements": [
+    {"id": "E1", "text": "exact element text from claim", "category": "preamble|step|structure|result"}
+  ],
+  "top_patents": [
+    {
+      "id": "P1",
+      "number": "US12345678",
+      "title": "Patent title",
+      "assignee": "Company",
+      "date": "2023-01-15",
+      "url": "https://patents.google.com/patent/US12345678",
+      "risk": "high|medium|low",
+      "risk_reason": "Why this is high/medium/low risk"
+    }
+  ],
+  "comparison_matrix": [
+    {
+      "element_id": "E1",
+      "patent_scores": [
+        {"patent_id": "P1", "match": "full|partial|none", "note": "brief explanation"}
+      ]
+    }
+  ],
+  "anticipation": [
+    {"patent_id": "P1", "anticipated": true|false, "reason": "explanation"}
+  ],
+  "obviousness_combos": [
+    {"patents": ["P1","P2"], "risk": "high|medium|low", "reason": "how examiner would combine"}
+  ],
+  "novel_elements": ["E3", "E5"],
+  "vulnerable_elements": ["E1", "E2"],
+  "claim_amendments": [
+    {"element_id": "E1", "original": "original text", "suggested": "narrowed text", "reason": "why"}
+  ],
+  "verdict": {
+    "patentability": "strong|moderate|weak",
+    "fto": "clear|caution|blocked",
+    "anticipated_102": false,
+    "obviousness_risk": "high|medium|low",
+    "confidence": "high|medium|low",
+    "summary": "2-3 sentence plain English verdict"
+  }
+}`;
+
+  const raw = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': DB.apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 6000,
+      messages: [{ role: 'user', content: structurePrompt }]
+    })
+  });
+
+  const rawData = await raw.json();
+  const rawText = rawData.content?.find(b => b.type === 'text')?.text || '{}';
+  let compData = null;
+
+  try {
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    compData = JSON.parse(clean);
+  } catch(e) {
+    // If JSON parse fails, fall back to prose
+    return rawText;
+  }
+
+  // Store structured comparison data for matrix rendering
+  window._lastComparisonData = compData;
+
+  // Also render a text summary for the raw tab
+  const verdict = compData.verdict || {};
+  const summary = [
+    `CLAIM COMPARISON MATRIX — ${(compData.top_patents||[]).length} patents × ${(compData.claim_elements||[]).length} elements`,
+    ``,
+    `VERDICT: Patentability: ${verdict.patentability?.toUpperCase()} | FTO: ${verdict.fto?.toUpperCase()} | § 103 Risk: ${verdict.obviousness_risk?.toUpperCase()}`,
+    ``,
+    verdict.summary,
+    ``,
+    `NOVEL ELEMENTS (not found in any prior art):`,
+    ...(compData.novel_elements||[]).map(id => {
+      const el = compData.claim_elements?.find(e => e.id === id);
+      return `  ✅ ${el?.text || id}`;
+    }),
+    ``,
+    `VULNERABLE ELEMENTS (found in prior art):`,
+    ...(compData.vulnerable_elements||[]).map(id => {
+      const el = compData.claim_elements?.find(e => e.id === id);
+      return `  ⚠️ ${el?.text || id}`;
+    }),
+    ``,
+    `TOP THREATS:`,
+    ...(compData.top_patents||[]).filter(p => p.risk === 'high').map(p =>
+      `  🔴 ${p.number} — ${p.title} (${p.assignee})\n     ${p.risk_reason}`
+    ),
+    ``,
+    `OBVIOUSNESS COMBINATIONS TO WATCH:`,
+    ...(compData.obviousness_combos||[]).map(c =>
+      `  ${c.risk === 'high' ? '🔴' : c.risk === 'medium' ? '🟡' : '🟢'} ${c.patents.join(' + ')}: ${c.reason}`
+    ),
+    ``,
+    `SUGGESTED CLAIM AMENDMENTS:`,
+    ...(compData.claim_amendments||[]).map(a =>
+      `  ${a.element_id}: "${a.suggested}"\n  Reason: ${a.reason}`
+    )
+  ].join('\n');
+
+  return summary;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MAIN FTO SEARCH RUNNER
+
+// ══════════════════════════════════════════════════════════════════════════
+async function runFTOSearch() {
+  if (searchRunning) return;
+  const claims = document.getElementById('search-claims').value.trim();
+  const keywords = document.getElementById('search-keywords').value.trim();
+  if (!claims && !keywords) { alert('Please enter claim language or keywords to search.'); return; }
+  if (!DB.apiKey) { alert('Please add your Anthropic API key in Settings.'); return; }
+
+  searchRunning = true;
+  consoleLines = [];
+  document.getElementById('run-search-btn').disabled = true;
+  document.getElementById('console-status').textContent = '● Running';
+  document.getElementById('console-status').style.color = 'var(--accent)';
+  document.getElementById('search-results-area').innerHTML = '<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px"><span class="spinner"></span> Agents running...</div>';
+
+  const invId = document.getElementById('search-inv-select').value;
+  const depth = document.getElementById('search-depth').value;
+
+  ['uspto','academic','intl','comp','ws'].forEach(a => setAgentStatus(a, 'idle', '⏳'));
+
+  consoleLog('system', 'FTO Search initiated — launching parallel agents', 'success');
+  consoleLog('system', `Claims length: ${claims.length} chars | Keywords: ${keywords}`);
+
+  const lensKey = DB.settings.lensKey || null;
+  const results = {};
+
+  // ── AGENT 1: USPTO PatentSearch API (DIRECT — no key needed) ─────────────
+  setAgentStatus('uspto', 'running', '⚡');
+  consoleLog('uspto', 'Querying USPTO PatentSearch API directly (search.patentsview.org)...');
+  try {
+    const [titleHits, abstractHits] = await Promise.all([
+      searchUSPTODirect(keywords || claims.substring(0,100), { size: depth==='deep'?15:10 }),
+      searchUSPTOAbstract(keywords || claims.substring(0,100), { size: depth==='deep'?10:7 })
+    ]);
+    const seen = new Set();
+    const allHits = [...titleHits, ...abstractHits].filter(p => {
+      if (seen.has(p.patent_id)) return false;
+      seen.add(p.patent_id); return true;
+    });
+    const usptoStructured = formatUSPTOPatents(allHits);
+    consoleLog('uspto', `Direct API: ${allHits.length} structured records from USPTO database`, 'success');
+    consoleLog('uspto', 'Running Claude analysis on USPTO results + Google Patents web search...');
+    const usptoAnalysis = await callAgent(
+      `You are a USPTO patent specialist performing FTO analysis.
+
+INVENTION CLAIMS:
+${claims}
+
+KEYWORDS: ${keywords}
+
+I've already queried the USPTO PatentSearch API directly and retrieved these STRUCTURED RESULTS:
+
+=== DIRECT USPTO API RESULTS (${allHits.length} patents) ===
+${usptoStructured}
+
+Now also search Google Patents (patents.google.com) for:
+1. Pre-grant US applications (US20XX/XXXXXXX format) which are NOT in the API above
+2. Any additional granted patents the API may have missed
+3. CPC classification related filings
+
+Then provide:
+A) Element-by-element risk analysis against my claims for the top 5 most relevant patents above
+B) 3-5 additional pre-grant applications found via Google Patents search
+C) Overall risk rating: HIGH / MEDIUM / LOW with specific justification`, 'USPTO+Google'
+    );
+    results.uspto = `=== STRUCTURED USPTO DATABASE RESULTS ===\n${usptoStructured}\n\n=== ANALYSIS + GOOGLE PATENTS SUPPLEMENT ===\n${usptoAnalysis}`;
+    setAgentStatus('uspto', 'done', '✅');
+    consoleLog('uspto', `Complete — ${allHits.length} direct API records + analysis`, 'success');
+  } catch(err) {
+    consoleLog('uspto', `USPTO API error (${err.message}) — falling back to web search`, 'warn');
+    try {
+      const fallback = await callAgent(`Search USPTO and Google Patents for prior art on: ${claims}\nKeywords: ${keywords}\nFind 8-10 relevant patents.`, 'USPTO-fallback');
+      results.uspto = `[Fallback mode]\n\n${fallback}`;
+      setAgentStatus('uspto', 'done', '✅');
+    } catch(e2) {
+      results.uspto = `Error: ${e2.message}`;
+      setAgentStatus('uspto', 'error', '❌');
+    }
+  }
+
+  // ── AGENT 2: arXiv (DIRECT) + Lens Scholar (if key) ─────────────────────
+  setAgentStatus('academic', 'running', '⚡');
+  consoleLog('academic', 'Querying arXiv API directly...');
+  try {
+    const arxivResults = await searchArxiv(keywords || claims.substring(0,80), { maxResults: 8 });
+    const arxivFormatted = formatArxivResults(arxivResults);
+    consoleLog('academic', `arXiv direct API: ${arxivResults.length} papers`, 'success');
+    let lensScholarFormatted = '';
+    if (lensKey) {
+      consoleLog('academic', 'Querying Lens.org scholarly API...');
+      const lensScholar = await searchLensScholar(keywords, lensKey);
+      if (lensScholar?.length) {
+        lensScholarFormatted = '\n\n=== LENS.ORG SCHOLARLY (direct API) ===\n' +
+          lensScholar.map((p,i) => `[${i+1}] ${p.title}\n  Authors: ${p.author?.map(a=>a.last_name).join(', ')}\n  Source: ${p.source?.title} (${p.year_published})\n  Citations: ${p.citation_count || 0}`).join('\n\n');
+        consoleLog('academic', `Lens.org scholarly: ${lensScholar.length} papers`, 'success');
+      }
+    } else {
+      consoleLog('academic', 'No Lens.org key — Claude will web-search ACM/IEEE/Semantic Scholar');
+    }
+    const academicAnalysis = await callAgent(
+      `You are an academic prior art specialist.
+INVENTION CLAIMS: ${claims}
+KEYWORDS: ${keywords}
+arXiv direct results:
+${arxivFormatted}
+${lensScholarFormatted}
+Also search Semantic Scholar, ACM Digital Library, IEEE Xplore for additional NPL not above. Assess risk per reference and overall patentability threat.`, 'Academic'
+    );
+    results.academic = `=== arXiv DIRECT API (${arxivResults.length} papers) ===\n${arxivFormatted}${lensScholarFormatted}\n\n=== ANALYSIS + WEB SUPPLEMENT ===\n${academicAnalysis}`;
+    setAgentStatus('academic', 'done', '✅');
+    consoleLog('academic', 'Academic search complete', 'success');
+  } catch(err) {
+    results.academic = `Error: ${err.message}`;
+    setAgentStatus('academic', 'error', '❌');
+    consoleLog('academic', `Error: ${err.message}`, 'error');
+  }
+
+  // ── AGENT 3: International — Lens Patents (if key) + WIPO web search ──────
+  setAgentStatus('intl', 'running', '⚡');
+  consoleLog('intl', lensKey ? 'Querying Lens.org patent API (USPTO+EPO+WIPO)...' : 'Using Claude web search for WIPO/EPO/Espacenet...');
+  try {
+    let lensPatentData = '';
+    if (lensKey) {
+      const lensPatents = await searchLensPatents(keywords, lensKey);
+      const formatted = formatLensPatents(lensPatents);
+      if (formatted) {
+        lensPatentData = `=== LENS.ORG DIRECT API (USPTO+EPO+WIPO) ===\n${formatted}`;
+        consoleLog('intl', `Lens.org: ${lensPatents?.length || 0} international records`, 'success');
+      }
+    }
+    const intlAnalysis = await callAgent(
+      `You are an international patent specialist.
+INVENTION CLAIMS: ${claims}
+KEYWORDS: ${keywords}
+${lensPatentData ? lensPatentData + '\n\nAlso search for:' : 'Search for:'}
+1. PCT applications (WIPO — patentscope.wipo.int) with WO numbers
+2. European patents at Espacenet (worldwide.espacenet.com)  
+3. Key filings from CN, JP, KR, DE offices
+4. Patent families linking US patents to international filings
+Assess FTO risk if product is sold internationally.`, 'International'
+    );
+    results.intl = `${lensPatentData}\n\n=== INTERNATIONAL ANALYSIS ===\n${intlAnalysis}`;
+    setAgentStatus('intl', 'done', '✅');
+    consoleLog('intl', 'International search complete', 'success');
+  } catch(err) {
+    results.intl = `Error: ${err.message}`;
+    setAgentStatus('intl', 'error', '❌');
+    consoleLog('intl', `Error: ${err.message}`, 'error');
+  }
+
+  // ── AGENT 4: Competitor — USPTO API by assignee + Google Patents ──────────
+  setAgentStatus('comp', 'running', '⚡');
+  consoleLog('competitor', 'Running competitor scan via USPTO direct API...');
+  try {
+    const competitorList = DB.settings.defaultCompetitors || 'Google,Microsoft,Samsung,Meta,OpenAI,Amazon,Apple,IBM,NVIDIA';
+    const topCompetitors = competitorList.split(',').map(c=>c.trim()).slice(0,5);
+    const compResultsRaw = await Promise.allSettled(
+      topCompetitors.map(name => searchUSPTOByAssignee(name, keywords, { size: 4, dateFrom: '2021-01-01' }))
+    );
+    let compStructured = '';
+    compResultsRaw.forEach((r, i) => {
+      if (r.status === 'fulfilled' && r.value.length) {
+        compStructured += `\n--- ${topCompetitors[i]} (${r.value.length} patents via USPTO API) ---\n`;
+        compStructured += formatUSPTOPatents(r.value);
+      }
+    });
+    const compAnalysis = await callAgent(
+      `You are a competitive patent intelligence analyst.
+INVENTION CLAIMS: ${claims}
+KEYWORDS: ${keywords}
+USPTO API competitor results:
+${compStructured || '(No direct hits — search Google Patents)'}
+Now search Google Patents for 2022-2025 applications from: ${competitorList}
+Focus on pre-grant publications. Rate strategic threat per filing: HIGH/MEDIUM/LOW.
+Conclude with competitor patent landscape summary.`, 'Competitor'
+    );
+    results.comp = `=== USPTO DIRECT API — COMPETITOR FILINGS ===\n${compStructured || 'No direct hits'}\n\n=== ANALYSIS + GOOGLE PATENTS ===\n${compAnalysis}`;
+    setAgentStatus('comp', 'done', '✅');
+    consoleLog('competitor', 'Competitor scan complete', 'success');
+  } catch(err) {
+    results.comp = `Error: ${err.message}`;
+    setAgentStatus('comp', 'error', '❌');
+    consoleLog('competitor', `Error: ${err.message}`, 'error');
+  }
+
+  // ── AGENT 5: White Space — pure Claude strategic analysis ─────────────────
+  setAgentStatus('ws', 'running', '⚡');
+  consoleLog('whitespace', 'Running white space and claim strategy analysis...');
+  try {
+    const wsAnalysis = await callAgent(
+      `You are a patent claim strategist specializing in white space analysis.
+INVENTION CLAIMS: ${claims}
+KEYWORDS: ${keywords}
+Based on the patent landscape searched, identify:
+1. UNPROTECTED WHITE SPACE — Specific unpatented technical approaches (be specific)
+2. STRONGEST CLAIM DIRECTIONS — Which claims are most defensible? Rank them.
+3. VULNERABLE ELEMENTS — Which claim elements face prior art risk? Suggest narrowing language.
+4. DEPENDENT CLAIM OPPORTUNITIES — Additional embodiments to claim as dependents
+5. ALTERNATIVE CLAIM LANGUAGE — Rewrite 2-3 vulnerable elements to avoid prior art
+6. DESIGN-AROUND RISK — Can competitors easily design around? How to prevent it?
+Provide specific, actionable claim language suggestions.`, 'WhiteSpace'
+    );
+    results.ws = wsAnalysis;
+    setAgentStatus('ws', 'done', '✅');
+    consoleLog('whitespace', 'White space analysis complete', 'success');
+  } catch(err) {
+    results.ws = `Error: ${err.message}`;
+    setAgentStatus('ws', 'error', '❌');
+    consoleLog('whitespace', `Error: ${err.message}`, 'error');
+  }
+
+
+  // ── AGENT 6: Asian Patent Offices (CNIPA/JPO/KIPO) ───────────────────────
+  if (document.getElementById('toggle-asia')?.checked !== false) {
+    setAgentStatus('asia', 'running', '⚡');
+    consoleLog('intl', 'Searching CNIPA (China), JPO (Japan), KIPO (Korea)...');
+    try {
+      results.asia = await callAgent(buildAsiaSearchPrompt(claims, keywords), 'Asia');
+      setAgentStatus('asia', 'done', '✅');
+      consoleLog('intl', 'Asian patent search complete', 'success');
+    } catch(err) {
+      results.asia = `Error: ${err.message}`;
+      setAgentStatus('asia', 'error', '❌');
+    }
+  } else { results.asia = 'Skipped'; setAgentStatus('asia', 'done', '—'); }
+
+  // ── AGENT 7: Standards Bodies (IETF/IEEE/W3C/ISO) ────────────────────────
+  if (document.getElementById('toggle-standards')?.checked !== false) {
+    setAgentStatus('standards', 'running', '⚡');
+    consoleLog('system', 'Searching IETF RFCs, IEEE standards, W3C, ISO/IEC...');
+    try {
+      results.standards = await callAgent(buildStandardsSearchPrompt(claims, keywords), 'Standards');
+      setAgentStatus('standards', 'done', '✅');
+      consoleLog('system', 'Standards search complete', 'success');
+    } catch(err) {
+      results.standards = `Error: ${err.message}`;
+      setAgentStatus('standards', 'error', '❌');
+    }
+  } else { results.standards = 'Skipped'; setAgentStatus('standards', 'done', '—'); }
+
+  // ── AGENT 8: Claim Comparison Engine ─────────────────────────────────────
+  if (document.getElementById('toggle-compare')?.checked !== false) {
+    setAgentStatus('compare', 'running', '⚡');
+    consoleLog('synthesis', 'Running element-by-element claim comparison...');
+    try {
+      const allPatentResults = [results.uspto, results.intl, results.asia].filter(r => r && r !== 'Skipped').join('\n\n');
+      results.compare = await runClaimComparison(claims, allPatentResults, invId);
+      setAgentStatus('compare', 'done', '✅');
+      consoleLog('synthesis', 'Claim comparison complete', 'success');
+    } catch(err) {
+      results.compare = `Error: ${err.message}`;
+      setAgentStatus('compare', 'error', '❌');
+    }
+  } else { results.compare = 'Skipped'; setAgentStatus('compare', 'done', '—'); }
+
+  // ── MASTER SYNTHESIS ──────────────────────────────────────────────────────
+  consoleLog('synthesis', 'All agents complete — running master synthesis...', 'success');
+
+  const synthPrompt = `You are a senior patent attorney synthesizing FTO results from 8 agents.
+
+INVENTION CLAIMS:
+${claims}
+
+AGENT SUMMARIES:
+USPTO+Google: ${(results.uspto||'').substring(0,1800)}
+Academic/arXiv: ${(results.academic||'').substring(0,800)}
+International WIPO/EPO: ${(results.intl||'').substring(0,800)}
+Competitor filings: ${(results.comp||'').substring(0,800)}
+Asian patents CN/JP/KR: ${(results.asia||'').substring(0,800)}
+Standards bodies: ${(results.standards||'').substring(0,800)}
+White space: ${(results.ws||'').substring(0,800)}
+Claim comparison: ${(results.compare||'').substring(0,1500)}
+
+Synthesize into a professional FTO opinion with these sections:
+
+## EXECUTIVE SUMMARY
+Overall risk: HIGH / MEDIUM / LOW. Key finding in 2-3 sentences.
+
+## TOP 5 THREATS
+Ranked by risk. For each: patent/ref number, why dangerous, which claim elements threatened.
+
+## CLAIM RISK SCORECARD
+For each major claim element: 🔴 HIGH / 🟡 MEDIUM / 🟢 LOW with the specific reference.
+
+## GEOGRAPHIC RISK PROFILE
+US vs international FTO. Any markets where risk is particularly high or low.
+
+## STANDARDS PRIOR ART
+Any published standards constituting § 102 prior art.
+
+## CONFIRMED WHITE SPACE
+3 strongest, most defensible claim directions based on all 8 agent searches.
+
+## PRIORITY ACTION ITEMS
+Numbered, specific, ordered by urgency.
+
+## OVERALL VERDICT
+Patentability: STRONG / MODERATE / WEAK. FTO: CLEAR / CAUTION / BLOCKED.`;
+
+  try {
+    const synthesis = await callAgent(synthPrompt, 'Synthesis');
+    results.synthesis = synthesis;
+    consoleLog('synthesis', 'Master synthesis complete ✓', 'success');
+
+    const activeAgents = ['uspto','academic','intl','comp','asia','standards','ws','compare']
+      .filter(a => results[a] && results[a] !== 'Skipped').length;
+
+    const searchRecord = {
+      id: 'search_' + Date.now(),
+      invId,
+      date: new Date().toISOString(),
+      claims: claims.substring(0, 300),
+      keywords,
+      keywordData: window._extractedKeywords || null,
+      agentCount: activeAgents,
+      results,
+      synthesis
+    };
+    DB.searches.push(searchRecord);
+    extractAndStorePriorArt(synthesis, invId); // quick regex extraction
+    if (invId) {
+      const inv = DB.inventions.find(i => i.id === invId);
+      if (inv) { inv.searches = inv.searches || []; inv.searches.push(searchRecord.id); }
+    }
+    save();
+    renderSearchResults(searchRecord);
+    logActivity(`FTO search (${activeAgents} agents): ${invId ? DB.inventions.find(i=>i.id===invId)?.title : 'standalone'}`);
+
+    // Deep AI-powered reference extraction (runs in background, saves all found refs with links)
+    extractAndStorePriorArtDeep(results, invId).then(count => {
+      if (count > 0) {
+        logActivity(`Auto-saved ${count} prior art references from FTO search`);
+        renderAll();
+      }
+    });
+  } catch(err) {
+    consoleLog('synthesis', `Synthesis error: ${err.message}`, 'error');
+    renderSearchResults({ results, synthesis: 'Synthesis failed — see individual agent results.' });
+  }
+
+  searchRunning = false;
+  document.getElementById('run-search-btn').disabled = false;
+  document.getElementById('console-status').textContent = '● Done';
+  document.getElementById('console-status').style.color = 'var(--accent)';
+  renderAll();
+}
+
+async function callAgent(prompt, agentName, options = {}) {
+  const body = {
+    model: options.model || 'claude-sonnet-4-20250514',
+    max_tokens: options.maxTokens || 4000,
+    messages: [{ role: 'user', content: prompt }]
+  };
+  // Include web search tool unless explicitly disabled
+  if (options.noTools !== true) {
+    body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
+  }
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': DB.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'interleaved-thinking-2025-05-14',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.content
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
+    .join('\n');
+}
+
+function renderSearchResults(record) {
+  const area = document.getElementById('search-results-area');
+  const tabs    = ['synthesis','compare','uspto','academic','intl','comp','asia','standards','ws'];
+  const labels  = ['🎯 Synthesis','🔬 Claim Compare','🏛 USPTO','📖 Academic','🌍 WIPO/EPO','🏢 Competitors','🌏 CN/JP/KR','📡 Standards','🗺 White Space'];
+  const r = record.results || {};
+
+  // Build risk badge for synthesis tab
+  const synthText = r.synthesis || record.synthesis || '';
+  let riskBadge = '';
+  if (/HIGH/i.test(synthText)) riskBadge = '<span class="pill pill-red" style="margin-left:8px">HIGH RISK</span>';
+  else if (/MEDIUM/i.test(synthText)) riskBadge = '<span class="pill pill-yellow" style="margin-left:8px">MEDIUM RISK</span>';
+  else if (/LOW/i.test(synthText)) riskBadge = '<span class="pill pill-green" style="margin-left:8px">LOW RISK</span>';
+
+  // Source indicators
+  const sourceMap = {
+    uspto: r.uspto?.includes('DIRECT USPTO API') ? '🔌 API' : '🌐 Web',
+    academic: r.academic?.includes('arXiv DIRECT') ? '🔌 arXiv API' : '🌐 Web',
+    intl: r.intl?.includes('LENS.ORG DIRECT') ? '🔌 Lens API' : '🌐 Web',
+    comp: r.comp?.includes('USPTO DIRECT API') ? '🔌 API+Web' : '🌐 Web',
+    asia: '🌐 Web',
+    standards: '🌐 Web',
+    ws: '🤖 Claude',
+    compare: '🤖 Claude',
+    synthesis: '🤖 Claude'
+  };
+
+  area.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <div style="font-size:11px;color:var(--text3)">Search completed ${new Date(record.date||Date.now()).toLocaleString()} · ${record.agentCount||8} agents</div>
+      ${riskBadge}
+    </div>
+    <div class="tabs" id="result-tabs" style="overflow-x:auto;flex-wrap:nowrap;white-space:nowrap">
+      ${tabs.map((t,i) => {
+        const skipped = r[t] === 'Skipped';
+        return `<div class="tab ${i===0?'active':''} ${skipped?'':''}" onclick="showResultTab('${t}',this)" style="${skipped?'opacity:.4':''}">${labels[i]} <span style="font-size:9px;opacity:.6">${sourceMap[t]||''}</span></div>`;
+      }).join('')}
+    </div>
+    ${tabs.map(t => {
+      const rawContent = (t === 'synthesis' ? (r.synthesis || record.synthesis) : r[t]) || 'No results for this agent.';
+      const isCompare = t === 'compare';
+      const isSynth = t === 'synthesis';
+      let formatted;
+      if (isCompare && window._lastComparisonData) {
+        // Render visual matrix for compare tab
+        formatted = renderComparisonMatrix(window._lastComparisonData) || renderMarkdownLight(rawContent);
+      } else if (isSynth) {
+        formatted = renderMarkdownLight(rawContent);
+      } else {
+        formatted = `<pre style="white-space:pre-wrap;font-family:var(--mono);font-size:11px;line-height:1.8;margin:0">${rawContent.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+      }
+      return `<div id="result-${t}" class="result-tab" style="${t!=='synthesis'?'display:none':''}">
+        <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;max-height:560px;overflow-y:auto;font-size:13px;line-height:1.8">
+          ${formatted}
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" onclick="showPage('reports')">📄 Full FTO Report</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadSearchResult()">⬇ JSON</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadSearchTxt()">⬇ TXT</button>
+      <span style="font-size:11px;color:var(--text3);align-self:center;margin-left:auto">${Object.keys(r).filter(k=>r[k]&&r[k]!=='Skipped').length} agents returned data</span>
+    </div>
+  `;
+  window._lastSearchRecord = record;
+}
+
+// Light markdown renderer
+function renderMarkdownLight(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^## (.+)$/gm, '<h3 style="font-family:var(--display);font-size:14px;font-weight:700;color:var(--accent);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">$1</h3>')
+    .replace(/^### (.+)$/gm, '<h4 style="font-size:13px;font-weight:700;color:var(--text);margin:12px 0 6px">$1</h4>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/🔴 HIGH/g, '<span class="pill pill-red">🔴 HIGH</span>')
+    .replace(/🟡 MEDIUM/g, '<span class="pill pill-yellow">🟡 MEDIUM</span>')
+    .replace(/🟢 LOW/g, '<span class="pill pill-green">🟢 LOW</span>')
+    .replace(/STRONG/g, '<span class="pill pill-green">STRONG</span>')
+    .replace(/MODERATE/g, '<span class="pill pill-yellow">MODERATE</span>')
+    .replace(/WEAK/g, '<span class="pill pill-red">WEAK</span>')
+    .replace(/CLEAR/g, '<span class="pill pill-green">CLEAR</span>')
+    .replace(/CAUTION/g, '<span class="pill pill-yellow">CAUTION</span>')
+    .replace(/BLOCKED/g, '<span class="pill pill-red">BLOCKED</span>')
+    .replace(/^(\d+\. .+)$/gm, '<div style="padding:4px 0;padding-left:8px;border-left:2px solid var(--border2)">$1</div>')
+    .replace(/^- (.+)$/gm, '<div style="padding:3px 0 3px 16px;position:relative"><span style="position:absolute;left:4px;color:var(--accent)">›</span>$1</div>')
+    .replace(/\n\n/g, '</p><p style="margin:8px 0">')
+    .replace(/\n/g, '<br>');
+}
+
+function renderComparisonMatrix(data) {
+  if (!data || !data.claim_elements || !data.top_patents) return null;
+  const matchIcon = m => m==='full'?'🔴':m==='partial'?'🟡':'🟢';
+  const matchLabel = m => m==='full'?'Full match':m==='partial'?'Partial':'Not found';
+  const matchColor = m => m==='full'?'var(--danger)':m==='partial'?'var(--warn)':'var(--accent)';
+  const verdict = data.verdict || {};
+  const verdictColor = verdict.patentability==='strong'?'var(--accent)':verdict.patentability==='moderate'?'var(--warn)':'var(--danger)';
+  const ftoColor = verdict.fto==='clear'?'var(--accent)':verdict.fto==='caution'?'var(--warn)':'var(--danger)';
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:6px">PATENTABILITY</div>
+        <div style="font-family:var(--display);font-weight:800;font-size:16px;color:${verdictColor}">${(verdict.patentability||'?').toUpperCase()}</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:6px">FTO STATUS</div>
+        <div style="font-family:var(--display);font-weight:800;font-size:16px;color:${ftoColor}">${(verdict.fto||'?').toUpperCase()}</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:6px">§ 103 RISK</div>
+        <div style="font-family:var(--display);font-weight:800;font-size:16px;color:${verdict.obviousness_risk==='high'?'var(--danger)':verdict.obviousness_risk==='medium'?'var(--warn)':'var(--accent)'}">${(verdict.obviousness_risk||'?').toUpperCase()}</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.08em;margin-bottom:6px">CONFIDENCE</div>
+        <div style="font-family:var(--display);font-weight:800;font-size:16px;color:var(--text2)">${(verdict.confidence||'?').toUpperCase()}</div>
+      </div>
+    </div>
+    ${verdict.summary ? `<div style="background:var(--accent-dim);border:1px solid var(--accent);border-radius:var(--radius);padding:12px;font-size:13px;margin-bottom:16px;line-height:1.7">${verdict.summary}</div>` : ''}
+    <div style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:.1em;margin-bottom:8px">ELEMENT × PATENT COMPARISON MATRIX</div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px">
+      <table style="width:100%;border-collapse:collapse;min-width:600px">
+        <thead>
+          <tr style="background:var(--s2)">
+            <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);min-width:200px">CLAIM ELEMENT</th>
+            ${data.top_patents.map(p => `<th style="padding:10px 12px;text-align:center;font-size:10px;color:var(--text2);border-bottom:1px solid var(--border);min-width:110px">
+              <a href="${p.url||'https://patents.google.com/patent/'+p.number}" target="_blank" style="color:var(--accent2);text-decoration:none">${p.number}</a>
+              <div style="font-size:9px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px">${p.assignee}</div>
+              <div style="margin-top:4px"><span style="padding:2px 5px;border-radius:10px;font-size:8px;background:${p.risk==='high'?'var(--danger-dim)':p.risk==='medium'?'var(--warn-dim)':'var(--accent-dim)'};color:${p.risk==='high'?'var(--danger)':p.risk==='medium'?'var(--warn)':'var(--accent)'}">${p.risk}</span></div>
+            </th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${(data.comparison_matrix||[]).map(row => {
+            const el = data.claim_elements.find(e => e.id === row.element_id);
+            const isNovel = (data.novel_elements||[]).includes(row.element_id);
+            const isVuln = (data.vulnerable_elements||[]).includes(row.element_id);
+            return `<tr style="border-bottom:1px solid var(--border)${isNovel?' background:rgba(0,229,195,.04)':''}${isVuln?' background:rgba(255,95,95,.04)':''}">
+              <td style="padding:10px 12px;font-size:11px;line-height:1.5;max-width:220px">
+                ${isNovel?'<span style="color:var(--accent);font-size:9px;font-weight:700;display:block;margin-bottom:2px">✅ NOVEL</span>':''}
+                ${isVuln?'<span style="color:var(--danger);font-size:9px;font-weight:700;display:block;margin-bottom:2px">⚠️ VULNERABLE</span>':''}
+                <span style="font-family:var(--mono);font-size:10px">${el?.text || row.element_id}</span>
+              </td>
+              ${data.top_patents.map(p => {
+                const score = row.patent_scores?.find(s => s.patent_id === p.id);
+                const match = score?.match || 'none';
+                return `<td style="padding:8px 12px;text-align:center;border-left:1px solid var(--border)" title="${score?.note||''}">
+                  <div style="font-size:16px">${matchIcon(match)}</div>
+                  <div style="font-size:9px;color:${matchColor(match)};font-family:var(--mono);margin-top:2px">${matchLabel(match)}</div>
+                </td>`;
+              }).join('')}
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:16px">🔴 Disclosed in prior art &nbsp;|&nbsp; 🟡 Partially disclosed &nbsp;|&nbsp; 🟢 Not found (novel) &nbsp;|&nbsp; Hover for notes</div>
+    ${data.top_patents?.filter(p=>p.risk==='high').length ? `
+      <div style="font-family:var(--mono);font-size:10px;color:var(--danger);letter-spacing:.1em;margin-bottom:8px">TOP THREATS</div>
+      ${data.top_patents.filter(p=>p.risk==='high').map(p=>`
+        <div style="background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--radius);padding:12px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span class="pill pill-red">HIGH</span>
+            <a href="${p.url||'#'}" target="_blank" style="font-weight:700;font-size:12px;color:var(--text);text-decoration:none">${p.number} — ${p.title}</a>
+          </div>
+          <div style="font-size:11px;color:var(--text2)">${p.assignee} · ${p.date}</div>
+          <div style="font-size:12px;margin-top:6px">${p.risk_reason}</div>
+        </div>`).join('')}` : ''}
+    ${data.obviousness_combos?.length ? `
+      <div style="font-family:var(--mono);font-size:10px;color:var(--warn);letter-spacing:.1em;margin:16px 0 8px">§ 103 OBVIOUSNESS RISK</div>
+      ${data.obviousness_combos.map(c=>`
+        <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:6px;display:flex;gap:10px">
+          <span class="pill pill-${c.risk==='high'?'red':c.risk==='medium'?'yellow':'green'}">${c.risk}</span>
+          <div><div style="font-family:var(--mono);font-size:11px;margin-bottom:3px">${c.patents.join(' + ')}</div>
+          <div style="font-size:11px;color:var(--text2)">${c.reason}</div></div>
+        </div>`).join('')}` : ''}
+    ${data.claim_amendments?.length ? `
+      <div style="font-family:var(--mono);font-size:10px;color:var(--accent2);letter-spacing:.1em;margin:16px 0 8px">SUGGESTED CLAIM AMENDMENTS</div>
+      ${data.claim_amendments.map(a=>`
+        <div style="background:var(--s2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px;margin-bottom:8px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px">ELEMENT ${a.element_id} — ${a.reason}</div>
+          <div style="font-size:11px;color:var(--danger);margin-bottom:4px;font-family:var(--mono)">− ${a.original}</div>
+          <div style="font-size:11px;color:var(--accent);font-family:var(--mono)">+ ${a.suggested}</div>
+        </div>`).join('')}` : ''}
+  `;
+}
+function downloadSearchTxt() {
+  if (!window._lastSearchRecord) return;
+  const r = window._lastSearchRecord;
+  const sections = ['synthesis','compare','uspto','academic','intl','comp','asia','standards','ws'];
+  const labels = ['SYNTHESIS','CLAIM COMPARISON','USPTO','ACADEMIC','WIPO/EPO','COMPETITORS','CN/JP/KR','STANDARDS','WHITE SPACE'];
+  let txt = `FTO SCOUT SEARCH RESULTS\n${'='.repeat(60)}\nDate: ${r.date}\nClaims searched: ${r.claims}\nKeywords: ${r.keywords}\n${'='.repeat(60)}\n\n`;
+  sections.forEach((s,i) => {
+    const data = s === 'synthesis' ? (r.results?.synthesis || r.synthesis) : r.results?.[s];
+    if (data && data !== 'Skipped') txt += `\n${'='.repeat(40)}\n${labels[i]}\n${'='.repeat(40)}\n${data}\n`;
+  });
+  const blob = new Blob([txt], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `fto_search_${new Date().toISOString().split('T')[0]}.txt`;
+  a.click();
+}
+
+function showResultTab(id, el) {
+  document.querySelectorAll('.result-tab').forEach(t => t.style.display = 'none');
+  document.getElementById('result-'+id).style.display = 'block';
+  document.getElementById('result-tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function downloadSearchResult() {
+  if (!window._lastSearchRecord) return;
+  const blob = new Blob([JSON.stringify(window._lastSearchRecord, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `fto_search_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+
+function extractAndStorePriorArt(text, invId) {
+  // Quick regex extraction for immediate results (kept as fast fallback)
+  const patentRe = /US\s*[\d,]+\s*[AB]\d?/gi;
+  const matches = [...new Set(text.match(patentRe) || [])];
+  matches.slice(0, 10).forEach(m => {
+    if (!DB.priorArt.find(p => p.title.includes(m))) {
+      DB.priorArt.push({
+        id: 'pa_' + Date.now() + Math.random(),
+        type: 'patent',
+        title: m + ' (auto-extracted)',
+        assignee: '',
+        risk: 'medium',
+        abstract: 'Auto-extracted from FTO search results. Review full results for details.',
+        differentiation: '',
+        invId: invId || '',
+        url: `https://patents.google.com/patent/${m.replace(/[,\s]/g,'')}`,
+        addedAt: new Date().toISOString()
+      });
+    }
+  });
+}
+
+// Deep AI-powered reference extraction — runs after all agents finish
+async function extractAndStorePriorArtDeep(allResults, invId) {
+  try {
+    // Collect all agent texts
+    const combined = Object.entries(allResults)
+      .filter(([k, v]) => v && v !== 'Skipped' && k !== 'synthesis')
+      .map(([k, v]) => `=== ${k.toUpperCase()} AGENT ===\n${typeof v === 'string' ? v.substring(0, 2500) : ''}`)
+      .join('\n\n');
+
+    if (combined.length < 100) return 0;
+
+    consoleLog('system', 'Extracting all references with AI for Prior Art Library...', 'success');
+
+    const prompt = `You are a patent reference extractor. From the FTO search results below, extract EVERY distinct patent, academic paper, standard, or product that was mentioned as prior art or a relevant reference.
+
+SEARCH RESULTS:
+${combined.substring(0, 15000)}
+
+Return ONLY a valid JSON array. No markdown, no code fences, no extra text. Each entry:
+[
+  {
+    "title": "Full title or patent number and title (e.g. US 11,234,567 B2 — System for Neural Compression)",
+    "type": "patent|academic|standard|product",
+    "risk": "high|medium|low",
+    "assignee": "Company or author names",
+    "url": "Direct URL (Google Patents for patents, DOI for papers, or best available link)",
+    "abstract": "1-2 sentence summary of what this reference discloses that is relevant"
+  }
+]
+
+Important:
+- Include ALL references found across all agents, not just top ones
+- For patents: use https://patents.google.com/patent/USXXXXXXX format
+- For arXiv papers: use https://arxiv.org/abs/XXXX.XXXXX format
+- For standards: use the official standards body URL
+- Deduplicate — if same ref appears in multiple agents, include it once
+- Set risk based on how closely the reference overlaps with the invention claims`;
+
+    // Use callAgent with noTools for structured extraction
+    const text = await callAgent(prompt, 'RefExtract', { noTools: true, maxTokens: 6000 });
+
+    // Parse JSON from response
+    let jsonStr = text;
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch) jsonStr = fenceMatch[1];
+    const arrMatch = jsonStr.match(/\[[\s\S]*\]/);
+    if (!arrMatch) {
+      consoleLog('system', 'Could not parse reference JSON — using regex fallback', 'warn');
+      return 0;
+    }
+
+    const refs = JSON.parse(arrMatch[0]);
+    let addedCount = 0;
+
+    refs.forEach(ref => {
+      // Dedup: skip if we already have this title or URL
+      const isDupe = DB.priorArt.some(existing =>
+        (ref.title && existing.title && existing.title.includes(ref.title.substring(0, 30))) ||
+        (ref.url && existing.url && existing.url === ref.url)
+      );
+      if (isDupe) return;
+
+      DB.priorArt.push({
+        id: 'pa_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        type: ref.type || 'patent',
+        risk: ref.risk || 'medium',
+        title: ref.title || 'Unknown Reference',
+        assignee: ref.assignee || '',
+        url: ref.url || '',
+        abstract: ref.abstract || '',
+        differentiation: '',
+        invId: invId || '',
+        addedAt: new Date().toISOString(),
+        autoExtracted: true
+      });
+      addedCount++;
+    });
+
+    save();
+    consoleLog('system', `Auto-saved ${addedCount} references to Prior Art Library`, 'success');
+    return addedCount;
+
+  } catch(err) {
+    consoleLog('system', `Deep extraction error: ${err.message} — regex fallback used`, 'warn');
+    return 0;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DEADLINES
+// ══════════════════════════════════════════════════════════════════════════
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const diff = new Date(dateStr) - new Date();
+  return Math.ceil(diff / 86400000);
+}
+
+function renderDeadlines() {
+  const all = [];
+
+  DB.inventions.forEach(inv => {
+    if (inv.provDate) all.push({
+      title: inv.title,
+      type: '12-mo Non-Provisional Deadline',
+      date: inv.npDeadline || calcNPDate(inv.provDate),
+      icon: inv.icon,
+      invId: inv.id
+    });
+  });
+
+  DB.deadlines.forEach(d => all.push(d));
+
+  all.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  const render = (list, el) => {
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:8px">📅</div><div style="color:var(--text3);font-size:12px">No deadlines — add inventions with provisional filing dates</div></div>`;
+      return;
+    }
+    el.innerHTML = list.map(d => {
+      const days = daysUntil(d.date);
+      const cls = days <= 0 ? 'red' : days <= 30 ? 'red' : days <= 90 ? 'yellow' : 'green';
+      return `
+      <div class="deadline-item">
+        <div class="deadline-urgency ${cls}"></div>
+        <div style="font-size:20px">${d.icon || '📅'}</div>
+        <div class="deadline-info">
+          <div class="deadline-title">${d.title}</div>
+          <div class="deadline-sub">${d.type}</div>
+        </div>
+        <div class="deadline-date">
+          <div class="deadline-days ${cls}">${days <= 0 ? 'EXPIRED' : days+'d'}</div>
+          <div style="font-size:10px;margin-top:2px">${d.date}</div>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  render(all, document.getElementById('deadlines-list'));
+
+  // Dashboard mini-version (top 3)
+  const dashEl = document.getElementById('dash-deadlines');
+  if (all.length) {
+    dashEl.innerHTML = all.slice(0,3).map(d => {
+      const days = daysUntil(d.date);
+      const cls = days <= 30 ? 'red' : days <= 90 ? 'yellow' : 'green';
+      return `<div class="deadline-item" style="margin-bottom:6px">
+        <div class="deadline-urgency ${cls}" style="height:30px"></div>
+        <div class="deadline-info"><div class="deadline-title" style="font-size:12px">${d.title}</div><div class="deadline-sub">${d.type}</div></div>
+        <div class="deadline-days ${cls}" style="font-size:14px">${days<=0?'EXP':days+'d'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Stat
+  const urgent = all.filter(d => { const days = daysUntil(d.date); return days !== null && days >= 0 && days <= 30; }).length;
+  document.getElementById('stat-urgent').textContent = urgent;
+}
+
+function calcNPDate(provDate) {
+  const d = new Date(provDate);
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+function exportCalendar() {
+  const events = [];
+  DB.inventions.forEach(inv => {
+    if (inv.npDeadline) {
+      events.push(`BEGIN:VEVENT\nSUMMARY:NP Deadline: ${inv.title}\nDTSTART;VALUE=DATE:${inv.npDeadline.replace(/-/g,'')}\nDTEND;VALUE=DATE:${inv.npDeadline.replace(/-/g,'')}\nDESCRIPTION:Non-provisional patent application deadline\nEND:VEVENT`);
+    }
+  });
+  if (!events.length) { alert('No deadlines to export.'); return; }
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//FTO Scout//EN\n${events.join('\n')}\nEND:VCALENDAR`;
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fto_deadlines.ics';
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// COMPETITORS
+// ══════════════════════════════════════════════════════════════════════════
+function saveCompetitor() {
+  const name = document.getElementById('comp-name').value.trim();
+  if (!name) return;
+  DB.competitors.push({
+    id: 'comp_' + Date.now(),
+    name,
+    keywords: document.getElementById('comp-keywords').value.trim(),
+    icon: document.getElementById('comp-icon').value.trim() || '🏢',
+    lastScan: null,
+    findings: []
+  });
+  save(); closeModal('modal-add-competitor'); renderCompetitors();
+}
+
+function addDefaultCompetitors() {
+  const defaults = [
+    {name:'Google LLC', icon:'🔵', keywords:'transformer compression token reduction LLM optimization'},
+    {name:'Microsoft Corporation', icon:'🟦', keywords:'language model compression inference optimization'},
+    {name:'Meta Platforms', icon:'🔷', keywords:'LLM compression attention optimization transformer'},
+    {name:'Samsung Electronics', icon:'🟡', keywords:'neural network compression symbolic encoding'},
+    {name:'OpenAI', icon:'⚪', keywords:'language model inference optimization token compression'},
+    {name:'NVIDIA Corporation', icon:'🟢', keywords:'transformer inference GPU optimization'},
+  ];
+  defaults.forEach(d => {
+    if (!DB.competitors.find(c => c.name === d.name)) {
+      DB.competitors.push({ id:'comp_'+Date.now()+Math.random(), ...d, lastScan:null, findings:[] });
+    }
+  });
+  save(); renderCompetitors();
+}
+
+function renderCompetitors() {
+  const el = document.getElementById('competitors-list');
+  if (!DB.competitors.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👁</div><div class="empty-title">No competitors monitored</div><div class="empty-desc">Add companies to watch their patent filings.</div><button class="btn btn-secondary" onclick="addDefaultCompetitors()">+ Add Default AI Competitors</button></div>`;
+    return;
+  }
+  el.innerHTML = DB.competitors.map(c => `
+    <div class="competitor-item">
+      <div class="comp-logo">${c.icon}</div>
+      <div class="comp-info">
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-count">Keywords: ${c.keywords || 'none set'}</div>
+      </div>
+      <div class="comp-last">${c.lastScan ? 'Last scan: '+c.lastScan.substring(0,10) : 'Never scanned'}</div>
+      <button class="btn btn-ghost btn-sm" onclick="scanCompetitor('${c.id}')">🔄 Scan</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteCompetitor('${c.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function deleteCompetitor(id) {
+  DB.competitors = DB.competitors.filter(c => c.id !== id);
+  save(); renderCompetitors();
+}
+
+async function scanCompetitor(id) {
+  const comp = DB.competitors.find(c => c.id === id);
+  if (!comp || !DB.apiKey) return;
+  consoleLog('competitor', `Scanning ${comp.name}...`);
+
+  const invKeywords = DB.inventions.map(i => i.keywords).filter(Boolean).join(', ');
+  const prompt = `Search for recent patent filings (2023-2025) from "${comp.name}" related to these technical areas: ${comp.keywords || invKeywords || 'AI, machine learning, NLP'}.
+
+Use web search to find patents on Google Patents or USPTO.
+
+For each relevant filing found:
+- Patent/application number
+- Title  
+- Filing date
+- Brief description of what it covers
+- Potential overlap with: pre-tokenization text compression, symbolic encoding, LLM optimization, codebook-based compression
+
+Flag any that could conflict with AI inference compression patents.`;
+
+  try {
+    const result = await callAgent(prompt, comp.name);
+    comp.lastScan = new Date().toISOString();
+    comp.findings = [{ date: comp.lastScan, summary: result }];
+    save(); renderCompetitors();
+
+    document.getElementById('competitor-findings').innerHTML = `
+      <div class="card"><div class="card-title">📋 ${comp.name} — Scan Results</div>
+      <div style="font-size:12px;line-height:1.8;white-space:pre-wrap;max-height:400px;overflow-y:auto;font-family:var(--mono)">${result.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`;
+    logActivity(`Competitor scan: ${comp.name}`);
+  } catch(err) {
+    alert('Scan failed: ' + err.message);
+  }
+}
+
+async function runCompetitorScan() {
+  for (const comp of DB.competitors) {
+    await scanCompetitor(comp.id);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PRIOR ART LIBRARY
+// ══════════════════════════════════════════════════════════════════════════
+function savePriorArt() {
+  const title = document.getElementById('pa-title').value.trim();
+  if (!title) return;
+  DB.priorArt.push({
+    id: 'pa_' + Date.now(),
+    type: document.getElementById('pa-type').value,
+    risk: document.getElementById('pa-risk').value,
+    title,
+    assignee: document.getElementById('pa-assignee').value.trim(),
+    url: document.getElementById('pa-url').value.trim(),
+    abstract: document.getElementById('pa-abstract').value.trim(),
+    differentiation: document.getElementById('pa-diff').value.trim(),
+    invId: document.getElementById('pa-inv-link').value,
+    addedAt: new Date().toISOString()
+  });
+  save(); closeModal('modal-add-pa'); renderPriorArt();
+  logActivity('Prior art reference added');
+}
+
+function renderPriorArt(filter='') {
+  const el = document.getElementById('pa-library-list');
+  document.getElementById('stat-refs').textContent = DB.priorArt.length;
+  let list = DB.priorArt;
+  if (filter) list = list.filter(p => p.title.toLowerCase().includes(filter) || (p.assignee||'').toLowerCase().includes(filter));
+  const typeFilter = document.getElementById('pa-filter-type')?.value;
+  const riskFilter = document.getElementById('pa-filter-risk')?.value;
+  if (typeFilter) list = list.filter(p => p.type === typeFilter);
+  if (riskFilter) list = list.filter(p => p.risk === riskFilter);
+
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-title">No references found</div><div class="empty-desc">Run an FTO search or add references manually.</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Risk</th><th>Type</th><th>Reference</th><th>Assignee</th><th>Added</th><th></th></tr></thead><tbody>
+    ${list.map(p => `<tr>
+      <td><span class="pill pill-${p.risk==='high'?'red':p.risk==='medium'?'yellow':'green'}">${p.risk}</span></td>
+      <td><span class="pill pill-gray">${p.type}</span></td>
+      <td><div style="font-weight:600;font-size:12px">${p.url ? `<a href="${p.url}" target="_blank" style="color:var(--accent)">${p.title}</a>` : p.title}</div>${p.abstract?`<div style="font-size:11px;color:var(--text2);margin-top:2px">${p.abstract.substring(0,80)}…</div>`:''}</td>
+      <td style="font-size:12px">${p.assignee||'—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${p.addedAt?.substring(0,10)||'—'}</td>
+      <td><button class="btn btn-ghost btn-sm btn-icon" onclick="deletePriorArt('${p.id}')">🗑</button></td>
+    </tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function filterPriorArt(val) { renderPriorArt(val.toLowerCase()); }
+
+function deletePriorArt(id) {
+  DB.priorArt = DB.priorArt.filter(p => p.id !== id);
+  save(); renderPriorArt();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// REPORTS
+// ══════════════════════════════════════════════════════════════════════════
+let currentReport = null;
+
+async function generateReport() {
+  const invId = document.getElementById('report-inv-select').value;
+  if (!invId) { alert('Select an invention first.'); return; }
+  const inv = DB.inventions.find(i => i.id === invId);
+  if (!inv) return;
+
+  const pa = DB.priorArt.filter(p => !p.invId || p.invId === invId);
+  const searches = DB.searches.filter(s => s.invId === invId);
+  const lastSearch = searches[searches.length - 1];
+
+  document.getElementById('report-output').innerHTML = '<div style="text-align:center;padding:30px"><span class="spinner"></span> Generating report...</div>';
+
+  if (!DB.apiKey) { alert('API key required.'); return; }
+
+  const reportPrompt = `Generate a professional Freedom to Operate (FTO) Prior Art Analysis report for the following invention.
+
+INVENTION: ${inv.title}
+FIELD: ${inv.field}
+SUMMARY: ${inv.summary}
+CLAIMS: ${inv.claims || 'Not provided'}
+NOVELTY ARGUMENT: ${inv.novel || 'Not provided'}
+FILING STATUS: ${inv.status}
+PROVISIONAL DATE: ${inv.provDate || 'Not filed'}
+APPLICATION NUMBER: ${inv.appNum || 'Not yet assigned'}
+
+PRIOR ART FOUND (${pa.length} references):
+${pa.map(p => `- [${p.risk.toUpperCase()}] ${p.title} (${p.assignee||'unknown'}) — ${p.abstract}`).join('\n')}
+
+${lastSearch ? `LATEST FTO SEARCH SYNTHESIS:\n${lastSearch.synthesis}` : ''}
+
+Generate a complete FTO Prior Art Analysis report with these sections:
+1. EXECUTIVE SUMMARY
+2. INVENTION OVERVIEW  
+3. SEARCH METHODOLOGY
+4. PRIOR ART REFERENCES (formatted table)
+5. CLAIM-BY-CLAIM RISK ANALYSIS
+6. WHITE SPACE OPPORTUNITIES
+7. FTO OPINION AND RISK RATING
+8. RECOMMENDED ACTIONS
+9. DISCLAIMER
+
+Format professionally. This is for a pro se inventor conducting due diligence.`;
+
+  try {
+    const report = await callAgent(reportPrompt, 'Report');
+    currentReport = { inv, report, generatedAt: new Date().toISOString() };
+
+    document.getElementById('report-output').innerHTML = `
+      <div class="report-block" style="margin-bottom:12px">
+        <div class="report-block-title">FTO Prior Art Analysis — ${inv.title}</div>
+        <div style="font-size:11px;color:var(--text3)">Generated: ${new Date().toLocaleDateString()} | Inventor: ${DB.profile.name||'—'} | Entity: ${DB.profile.entity||'—'}</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;max-height:600px;overflow-y:auto;font-size:13px;line-height:1.8;white-space:pre-wrap">${report.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="downloadReport('txt')">⬇ Download TXT</button>
+        <button class="btn btn-ghost" onclick="downloadReport('json')">⬇ Download JSON</button>
+      </div>`;
+    logActivity(`Report generated: ${inv.title}`);
+  } catch(err) {
+    document.getElementById('report-output').innerHTML = `<div style="color:var(--danger);padding:20px">Error generating report: ${err.message}</div>`;
+  }
+}
+
+function downloadReport(format) {
+  if (!currentReport) { alert('Generate a report first.'); return; }
+  let content, filename, type;
+  if (format === 'json') {
+    content = JSON.stringify(currentReport, null, 2);
+    filename = `fto_report_${currentReport.inv.title.substring(0,30).replace(/\s+/g,'_')}.json`;
+    type = 'application/json';
+  } else {
+    content = `FTO PRIOR ART ANALYSIS\n${'='.repeat(60)}\nInvention: ${currentReport.inv.title}\nGenerated: ${currentReport.generatedAt}\nInventor: ${DB.profile.name}\nEntity: ${DB.profile.entity}\n${'='.repeat(60)}\n\n${currentReport.report}`;
+    filename = `fto_report_${currentReport.inv.title.substring(0,30).replace(/\s+/g,'_')}.txt`;
+    type = 'text/plain';
+  }
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PUBLIC REGISTRY (uses shared storage)
+// ══════════════════════════════════════════════════════════════════════════
+async function publishToRegistry() {
+  const invId = document.getElementById('registry-inv-select').value;
+  const abstract = document.getElementById('registry-abstract').value.trim();
+  if (!invId || !abstract) { alert('Select an invention and enter a public abstract.'); return; }
+  const inv = DB.inventions.find(i => i.id === invId);
+  if (!inv) return;
+
+  const entry = JSON.stringify({
+    title: inv.title,
+    field: inv.field,
+    abstract,
+    inventor: DB.profile.name || 'Anonymous',
+    entity: DB.profile.entity || '',
+    publishedAt: new Date().toISOString(),
+    id: inv.id
+  });
+
+  try {
+    await window.storage.set(`registry:${inv.id}`, entry, true);
+    alert('Invention published to public registry!');
+    renderRegistry();
+    logActivity(`Published to registry: ${inv.title}`);
+  } catch(e) {
+    alert('Storage error: ' + e.message);
+  }
+}
+
+async function renderRegistry() {
+  const el = document.getElementById('registry-list');
+  if (!el) return;
+  try {
+    const keys = await window.storage.list('registry:', true);
+    if (!keys?.keys?.length) {
+      el.innerHTML = `<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No public inventions registered yet. Be the first!</div>`;
+      return;
+    }
+    const entries = [];
+    for (const key of keys.keys.slice(0, 20)) {
+      try {
+        const r = await window.storage.get(key, true);
+        if (r?.value) entries.push(JSON.parse(r.value));
+      } catch {}
+    }
+    el.innerHTML = entries.sort((a,b) => new Date(b.publishedAt)-new Date(a.publishedAt)).map(e => `
+      <div class="inv-card" style="cursor:default">
+        <div class="inv-header">
+          <div class="inv-icon">💡</div>
+          <div class="inv-meta">
+            <div class="inv-title">${e.title}</div>
+            <div class="inv-field">${e.field || '—'} · ${e.inventor}${e.entity?' / '+e.entity:''}</div>
+          </div>
+          <span class="pill pill-gray" style="font-size:9px">${e.publishedAt?.substring(0,10)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.6">${e.abstract}</div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">Registry unavailable</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SETTINGS & API KEY MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════════
+function saveApiKey() {
+  const v = document.getElementById('settings-api-key').value.trim();
+  if (v && v !== '••••••••') { DB.apiKey = v; save(); updateApiStatus(); alert('Anthropic API key saved.'); }
+}
+
+function saveLensKey() {
+  const v = document.getElementById('settings-lens-key').value.trim();
+  if (!v) return;
+  DB.settings.lensKey = v;
+  save();
+  updateSourceStatuses();
+  alert('Lens.org key saved. Click Test to verify.');
+}
+
+function saveEPOKey() {
+  const v = document.getElementById('settings-epo-key').value.trim();
+  if (!v) return;
+  // Format: "consumerKey:consumerSecret"
+  DB.settings.epoKey = v;
+  save();
+  updateSourceStatuses();
+  alert('EPO key saved. Click Test to verify.');
+}
+
+function saveProfile() {
+  DB.profile.name = document.getElementById('settings-name').value.trim();
+  DB.profile.entity = document.getElementById('settings-entity').value.trim();
+  save(); alert('Profile saved.');
+}
+
+function saveSettings() {
+  DB.settings.depth = document.getElementById('settings-depth').value;
+  DB.settings.defaultCompetitors = document.getElementById('settings-competitors').value;
+  save(); alert('Settings saved.');
+}
+
+function loadSettings() {
+  document.getElementById('settings-api-key').value = DB.apiKey ? '••••••••' : '';
+  document.getElementById('settings-name').value = DB.profile.name || '';
+  document.getElementById('settings-entity').value = DB.profile.entity || '';
+  document.getElementById('settings-depth').value = DB.settings.depth || 'standard';
+  document.getElementById('settings-competitors').value = DB.settings.defaultCompetitors || '';
+  if (DB.settings.lensKey) document.getElementById('settings-lens-key').value = '••••••••';
+  if (DB.settings.epoKey) document.getElementById('settings-epo-key').value = '••••••••';
+  updateSourceStatuses();
+}
+
+function updateSourceStatuses() {
+  const lensEl = document.getElementById('status-lens');
+  if (lensEl) {
+    if (DB.settings.lensKey) {
+      lensEl.className = 'pill pill-green';
+      lensEl.textContent = '✓ Key Saved';
+    } else {
+      lensEl.className = 'pill';
+      lensEl.style.cssText = 'background:var(--warn-dim);color:var(--warn)';
+      lensEl.textContent = '⚠ Key Required';
+    }
+  }
+  const epoEl = document.getElementById('status-epo');
+  if (epoEl) {
+    if (DB.settings.epoKey) {
+      epoEl.className = 'pill';
+      epoEl.style.cssText = 'background:var(--warn-dim);color:var(--warn)';
+      epoEl.textContent = '⚠ Key Saved (unverified)';
+    } else {
+      epoEl.className = 'pill';
+      epoEl.style.cssText = 'background:var(--danger-dim);color:var(--danger)';
+      epoEl.textContent = '✕ Not Connected';
+    }
+  }
+}
+
+// ── CONNECTION TESTS ─────────────────────────────────────────────────────
+async function testUSPTO() {
+  const el = document.getElementById('status-uspto');
+  el.textContent = '⏳ Testing...';
+  try {
+    const patents = await searchUSPTODirect('machine learning compression', { size: 1 });
+    el.className = 'pill pill-green';
+    el.textContent = `✓ Live — returned ${patents.length} result`;
+    alert(`✅ USPTO API working!\nFound: ${patents[0]?.patent_title || 'result'}\nGrant date: ${patents[0]?.patent_date}`);
+  } catch(e) {
+    el.className = 'pill pill-red';
+    el.textContent = '✕ Error';
+    alert('USPTO test failed: ' + e.message);
+  }
+}
+
+async function testLens() {
+  if (!DB.settings.lensKey) { alert('Enter your Lens.org API key first.'); return; }
+  const el = document.getElementById('status-lens');
+  el.textContent = '⏳ Testing...';
+  try {
+    const results = await searchLens('machine learning compression', DB.settings.lensKey);
+    if (results === null) throw new Error('API returned null — check your key');
+    el.className = 'pill pill-green';
+    el.textContent = `✓ Connected — ${results.length} results`;
+    alert(`✅ Lens.org API connected!\nReturned ${results.length} patent records.`);
+  } catch(e) {
+    el.className = 'pill';
+    el.style.cssText = 'background:var(--danger-dim);color:var(--danger)';
+    el.textContent = '✕ Key Invalid';
+    alert('Lens test failed: ' + e.message);
+  }
+}
+
+async function testArxiv() {
+  const el = document.getElementById('status-arxiv');
+  el.textContent = '⏳ Testing...';
+  try {
+    const results = await searchArxiv('machine learning compression', { maxResults: 1 });
+    el.className = 'pill pill-green';
+    el.textContent = `✓ Live — ${results.length} result`;
+    alert(`✅ arXiv API working!\nFound: ${results[0]?.title}`);
+  } catch(e) {
+    el.className = 'pill';
+    el.style.cssText = 'background:var(--danger-dim);color:var(--danger)';
+    el.textContent = '✕ Error';
+    alert('arXiv test failed: ' + e.message);
+  }
+}
+
+async function testEPO() {
+  if (!DB.settings.epoKey) { alert('Enter your EPO consumer key:secret first.'); return; }
+  alert('EPO OPS test: Enter your key in format "consumerKey:consumerSecret". EPO requires OAuth token exchange which requires a backend proxy for security. For now, the EPO agent falls back to Claude web search for Espacenet coverage.');
+}
+
+// ── arXiv DIRECT API ─────────────────────────────────────────────────────
+async function searchArxiv(query, options = {}) {
+  const { maxResults = 8 } = options;
+  const encoded = encodeURIComponent(query);
+  const url = `https://export.arxiv.org/api/query?search_query=all:${encoded}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`arXiv error: ${resp.status}`);
+  const text = await resp.text();
+  // Parse atom XML
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, 'text/xml');
+  const entries = [...xml.querySelectorAll('entry')];
+  return entries.map(e => ({
+    title: e.querySelector('title')?.textContent?.trim(),
+    authors: [...e.querySelectorAll('author name')].map(a => a.textContent).join(', '),
+    summary: e.querySelector('summary')?.textContent?.trim()?.substring(0, 400),
+    published: e.querySelector('published')?.textContent?.substring(0, 10),
+    url: e.querySelector('id')?.textContent?.trim(),
+    categories: [...e.querySelectorAll('category')].map(c => c.getAttribute('term')).join(', ')
+  }));
+}
+
+function formatArxivResults(results) {
+  if (!results.length) return 'No arXiv papers found matching these criteria.';
+  return results.map((r, i) =>
+    `[${i+1}] ${r.title}\n  Authors: ${r.authors}\n  Published: ${r.published} | Categories: ${r.categories}\n  URL: ${r.url}\n  Abstract: ${r.summary}...`
+  ).join('\n\n');
+}
+
+// ── GOOGLE PATENTS SCRAPER via Claude web search ──────────────────────────
+// Google Patents has no API. We use Claude's web_search tool pointed at
+// specific Google Patents URLs and structured queries. This is the same as
+// a human browsing the site — we just have Claude read and analyze the results.
+function buildGooglePatentsPrompt(claims, keywords) {
+  return `You are performing a Google Patents prior art search. Google Patents has no official API, so you must use web search to query it directly.
+
+Search Google Patents (patents.google.com) for patents and patent applications relevant to:
+
+INVENTION CLAIMS:
+${claims}
+
+KEYWORDS: ${keywords}
+
+Perform multiple targeted searches:
+1. Search: patents.google.com with query: ${keywords}
+2. Search for pre-grant publications (US2024XXXXXXX format) as well as granted patents
+3. Search for recent 2022-2025 filings from major AI companies
+4. Search for international patent families (PCT/WO applications)
+
+For each result from Google Patents:
+- Full patent/application number (including country code)
+- Title
+- Assignee/applicant
+- Filing date and publication date
+- Priority country and date
+- Relevant claim language
+- Patent family members (related applications in other countries)
+- Risk level: HIGH/MEDIUM/LOW
+
+Focus especially on:
+- Pre-grant US applications (published but not yet granted) that wouldn't appear in USPTO PatentSearch API
+- International PCT applications
+- Design-around opportunities
+
+Provide 8-12 specific results with full details.`;
+}
+
+// ── LENS SCHOLAR SEARCH ───────────────────────────────────────────────────
+async function searchLensScholar(query, lensKey) {
+  if (!lensKey) return null;
+  const body = {
+    query: { query_string: { query } },
+    size: 8,
+    sort: [{ 'year_published': 'desc' }],
+    include: ['lens_id', 'title', 'abstract', 'author', 'year_published',
+              'source.title', 'doi', 'open_access.is_oa', 'citation_count']
+  };
+  try {
+    const resp = await fetch('https://api.lens.org/scholarly/search', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${lensKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.data || [];
+  } catch { return null; }
+}
+
+async function searchLensPatents(query, lensKey) {
+  if (!lensKey) return null;
+  const body = {
+    query: { query_string: { query, fields: ['title', 'abstract', 'claim.text'] } },
+    size: 10,
+    sort: [{ 'date_published': 'desc' }],
+    include: [
+      'lens_id', 'title', 'abstract', 'applicant', 'inventor',
+      'year_published', 'publication_number', 'jurisdiction',
+      'legal_status.granted', 'date_published', 'family_id'
+    ]
+  };
+  try {
+    const resp = await fetch('https://api.lens.org/patent/search', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${lensKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.data || [];
+  } catch { return null; }
+}
+
+function formatLensPatents(patents) {
+  if (!patents?.length) return null;
+  return patents.map((p, i) => {
+    const applicants = p.applicant?.map(a => a.name || a.organisation_name)?.join(', ') || '—';
+    const granted = p.legal_status?.granted ? '✓ GRANTED' : '⏳ Pending';
+    return `[${i+1}] ${p.publication_number} [${p.jurisdiction}] ${granted}\n  Title: ${p.title}\n  Applicant: ${applicants}\n  Published: ${p.date_published}\n  Lens URL: https://www.lens.org/lens/patent/${p.lens_id}\n  Abstract: ${p.abstract?.substring(0,300)}...`;
+  }).join('\n\n');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SELECTS & UTILS
+// ══════════════════════════════════════════════════════════════════════════
+function populateSelects() {
+  const options = DB.inventions.map(i => `<option value="${i.id}">${i.icon} ${i.title}</option>`).join('');
+  ['pa-inv-link','registry-inv-select'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { const first = el.options[0]?.outerHTML || ''; el.innerHTML = first + options; }
+  });
+  populateSearchSelect();
+  populateReportSelect();
+}
+
+function populateSearchSelect() {
+  const el = document.getElementById('search-inv-select');
+  if (!el) return;
+  el.innerHTML = '<option value="">— Choose invention —</option>' +
+    DB.inventions.map(i => `<option value="${i.id}">${i.icon} ${i.title}</option>`).join('');
+}
+
+function populateReportSelect() {
+  const el = document.getElementById('report-inv-select');
+  if (!el) return;
+  el.innerHTML = '<option value="">— Choose invention —</option>' +
+    DB.inventions.map(i => `<option value="${i.id}">${i.icon} ${i.title}</option>`).join('');
+}
+
+function populateRegistrySelect() {
+  const el = document.getElementById('registry-inv-select');
+  if (!el) return;
+  el.innerHTML = '<option value="">— Choose invention —</option>' +
+    DB.inventions.map(i => `<option value="${i.id}">${i.icon} ${i.title}</option>`).join('');
+}
+
+function renderDashboard() {
+  document.getElementById('stat-inventions').textContent = DB.inventions.length;
+  document.getElementById('stat-searches').textContent = DB.searches.length;
+  document.getElementById('stat-refs').textContent = DB.priorArt.length;
+  renderDeadlines();
+
+  const feed = document.getElementById('activity-feed');
+  if (!DB.activity.length) {
+    feed.innerHTML = `<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No activity yet</div>`;
+    return;
+  }
+  feed.innerHTML = DB.activity.slice(-10).reverse().map(a =>
+    `<div>• ${a.msg} <span style="color:var(--text3);font-size:10px">${a.time}</span></div>`
+  ).join('');
+}
+
+function logActivity(msg) {
+  DB.activity.push({ msg, time: new Date().toLocaleTimeString() });
+  if (DB.activity.length > 50) DB.activity = DB.activity.slice(-50);
+  save();
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════════════════
+load();
+
+if (DB.apiKey) {
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  initApp();
+} else {
+  document.getElementById('onboarding').style.display = 'flex';
+}
+</script>
+</body>
+</html>
