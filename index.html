@@ -1716,7 +1716,34 @@ async function processUploadedDocument(file) {
 
     // STEP 2: Claude extraction
     setUploadStep(2, 'active');
-    const invention = await extractInventionFromText(rawText);
+    let invention;
+    try {
+      invention = await extractInventionFromText(rawText);
+    } catch(extractErr) {
+      console.warn('Claude extraction failed, using fallback:', extractErr);
+      // Fallback: use first 200 chars as summary, extract simple keywords from text
+      const words = rawText.substring(0, 2000).split(/\s+/).filter(w => w.length > 4);
+      const freqMap = {};
+      words.forEach(w => { const lw = w.toLowerCase().replace(/[^a-z]/g,''); if (lw.length > 4) freqMap[lw] = (freqMap[lw]||0)+1; });
+      const topWords = Object.entries(freqMap).sort((a,b) => b[1]-a[1]).slice(0,10).map(e => e[0]);
+      invention = {
+        title: file.name.replace(/\.[^.]+$/, ''),
+        field: '',
+        summary: rawText.substring(0, 300),
+        claims: rawText.substring(0, 1000),
+        keywords: topWords.join(', '),
+        novelty: ''
+      };
+    }
+
+    // Ensure we have at least keywords or claims to search with
+    if (!invention.keywords && !invention.claims) {
+      const words = rawText.substring(0, 2000).split(/\s+/).filter(w => w.length > 4);
+      const freqMap = {};
+      words.forEach(w => { const lw = w.toLowerCase().replace(/[^a-z]/g,''); if (lw.length > 4) freqMap[lw] = (freqMap[lw]||0)+1; });
+      invention.keywords = Object.entries(freqMap).sort((a,b) => b[1]-a[1]).slice(0,10).map(e => e[0]).join(', ');
+      if (!invention.claims) invention.claims = rawText.substring(0, 1000);
+    }
 
     setUploadStep(2, 'done');
     setUploadStatus(`<span class="spinner"></span> Creating invention: "${invention.title}"`);
@@ -1726,7 +1753,7 @@ async function processUploadedDocument(file) {
     const invId = 'inv_' + Date.now();
     const invRecord = {
       id: invId,
-      title: invention.title || 'Untitled Invention',
+      title: invention.title || file.name.replace(/\.[^.]+$/, ''),
       field: invention.field || '',
       icon: '📎',
       summary: invention.summary || '',
