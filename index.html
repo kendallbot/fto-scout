@@ -2300,7 +2300,7 @@ function buildAsiaSearchPrompt(claims, keywords) {
 INVENTION CLAIMS:
 ${claims}
 
-KEYWORDS: ${keywords}
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
 
 Search for patent filings from Asian patent offices that may affect freedom to operate:
 
@@ -2340,7 +2340,7 @@ function buildStandardsSearchPrompt(claims, keywords) {
 INVENTION CLAIMS:
 ${claims}
 
-KEYWORDS: ${keywords}
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
 
 Standards body documents (RFCs, IEEE standards, W3C specs, ISO/IEC documents) count as prior art under 35 U.S.C. § 102 if published before the patent filing date. Search for relevant published standards.
 
@@ -2518,8 +2518,63 @@ async function runFTOSearch() {
 
   ['uspto','academic','intl','comp','ws'].forEach(a => setAgentStatus(a, 'idle', '⏳'));
 
-  consoleLog('system', 'FTO Search initiated — launching parallel agents', 'success');
+  consoleLog('system', 'FTO Search initiated', 'success');
   consoleLog('system', `Claims length: ${claims.length} chars | Keywords: ${keywords}`);
+
+  // ── PHASE 0: SYNONYM EXPANSION ──────────────────────────────────────────
+  consoleLog('system', '🔄 Phase 0: Expanding keywords with synonyms & related terms...', 'success');
+  setAgentStatus('uspto', 'running', '⚡');
+
+  let expandedKeywords = keywords;
+  let synonymMap = {};
+  try {
+    const synResponse = await callAgent(
+      `You are a patent search strategist. For each keyword below, generate 2-3 synonyms, alternate phrasings, or related technical terms that patent examiners or inventors might use instead. This is critical for comprehensive prior art searching.
+
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
+
+INVENTION CONTEXT (first 500 chars of claims):
+${claims.substring(0, 500)}
+
+Return ONLY valid JSON — no markdown, no code fences:
+{
+  "synonym_map": {
+    "original term": ["synonym1", "synonym2", "alternate phrasing"],
+    "next term": ["synonym1", "synonym2"]
+  },
+  "expanded_search_string": "all original + synonym terms as a comma-separated list",
+  "boolean_queries": ["2-3 optimized boolean search strings using OR/AND for patent databases"]
+}`, 'SynonymExpand', { noTools: true, maxTokens: 1500 }
+    );
+
+    // Parse synonym response
+    let synJson = synResponse;
+    const synFence = synResponse.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (synFence) synJson = synFence[1];
+    const synMatch = synJson.match(/\{[\s\S]*\}/);
+    if (synMatch) {
+      const synData = JSON.parse(synMatch[0]);
+      synonymMap = synData.synonym_map || {};
+      expandedKeywords = synData.expanded_search_string || keywords;
+
+      // Log the synonym expansion
+      const synCount = Object.values(synonymMap).flat().length;
+      consoleLog('system', `Expanded ${Object.keys(synonymMap).length} keywords → +${synCount} synonyms`, 'success');
+      Object.entries(synonymMap).forEach(([term, syns]) => {
+        consoleLog('system', `  "${term}" → ${syns.join(', ')}`);
+      });
+
+      // Store for use in results
+      window._synonymMap = synonymMap;
+      window._booleanQueries = synData.boolean_queries || [];
+    }
+  } catch(e) {
+    consoleLog('system', `Synonym expansion skipped: ${e.message}`, 'warn');
+    expandedKeywords = keywords;
+  }
+
+  consoleLog('system', `📋 Expanded keywords: ${expandedKeywords.substring(0, 200)}...`);
+  consoleLog('system', '🔍 Phase 1: Broad discovery search with expanded terms...', 'success');
 
   const lensKey = DB.settings.lensKey || null;
   const results = {};
@@ -2528,9 +2583,10 @@ async function runFTOSearch() {
   setAgentStatus('uspto', 'running', '⚡');
   consoleLog('uspto', 'Querying USPTO PatentSearch API directly (search.patentsview.org)...');
   try {
+    const searchTerms = expandedKeywords || keywords || claims.substring(0,100);
     const [titleHits, abstractHits] = await Promise.all([
-      searchUSPTODirect(keywords || claims.substring(0,100), { size: depth==='deep'?15:10 }),
-      searchUSPTOAbstract(keywords || claims.substring(0,100), { size: depth==='deep'?10:7 })
+      searchUSPTODirect(searchTerms, { size: depth==='deep'?15:10 }),
+      searchUSPTOAbstract(searchTerms, { size: depth==='deep'?10:7 })
     ]);
     const seen = new Set();
     const allHits = [...titleHits, ...abstractHits].filter(p => {
@@ -2546,7 +2602,10 @@ async function runFTOSearch() {
 INVENTION CLAIMS:
 ${claims}
 
-KEYWORDS: ${keywords}
+KEYWORDS: ${expandedKeywords}
+
+SYNONYM MAP (search using ALL of these alternate terms):
+${Object.entries(synonymMap).map(([k,v]) => `${k} → ${v.join(', ')}`).join('\n')}
 
 I've already queried the USPTO PatentSearch API directly and retrieved these STRUCTURED RESULTS:
 
@@ -2582,7 +2641,7 @@ C) Overall risk rating: HIGH / MEDIUM / LOW with specific justification`, 'USPTO
   setAgentStatus('academic', 'running', '⚡');
   consoleLog('academic', 'Querying arXiv API directly...');
   try {
-    const arxivResults = await searchArxiv(keywords || claims.substring(0,80), { maxResults: 8 });
+    const arxivResults = await searchArxiv(expandedKeywords || keywords || claims.substring(0,80), { maxResults: 8 });
     const arxivFormatted = formatArxivResults(arxivResults);
     consoleLog('academic', `arXiv direct API: ${arxivResults.length} papers`, 'success');
     let lensScholarFormatted = '';
@@ -2600,7 +2659,7 @@ C) Overall risk rating: HIGH / MEDIUM / LOW with specific justification`, 'USPTO
     const academicAnalysis = await callAgent(
       `You are an academic prior art specialist.
 INVENTION CLAIMS: ${claims}
-KEYWORDS: ${keywords}
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
 arXiv direct results:
 ${arxivFormatted}
 ${lensScholarFormatted}
@@ -2631,7 +2690,7 @@ Also search Semantic Scholar, ACM Digital Library, IEEE Xplore for additional NP
     const intlAnalysis = await callAgent(
       `You are an international patent specialist.
 INVENTION CLAIMS: ${claims}
-KEYWORDS: ${keywords}
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
 ${lensPatentData ? lensPatentData + '\n\nAlso search for:' : 'Search for:'}
 1. PCT applications (WIPO — patentscope.wipo.int) with WO numbers
 2. European patents at Espacenet (worldwide.espacenet.com)  
@@ -2667,7 +2726,7 @@ Assess FTO risk if product is sold internationally.`, 'International'
     const compAnalysis = await callAgent(
       `You are a competitive patent intelligence analyst.
 INVENTION CLAIMS: ${claims}
-KEYWORDS: ${keywords}
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
 USPTO API competitor results:
 ${compStructured || '(No direct hits — search Google Patents)'}
 Now search Google Patents for 2022-2025 applications from: ${competitorList}
@@ -2690,7 +2749,7 @@ Conclude with competitor patent landscape summary.`, 'Competitor'
     const wsAnalysis = await callAgent(
       `You are a patent claim strategist specializing in white space analysis.
 INVENTION CLAIMS: ${claims}
-KEYWORDS: ${keywords}
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
 Based on the patent landscape searched, identify:
 1. UNPROTECTED WHITE SPACE — Specific unpatented technical approaches (be specific)
 2. STRONGEST CLAIM DIRECTIONS — Which claims are most defensible? Rank them.
@@ -2826,13 +2885,72 @@ Patentability: STRONG / MODERATE / WEAK. FTO: CLEAR / CAUTION / BLOCKED.`;
     renderSearchResults(searchRecord);
     logActivity(`FTO search (${activeAgents} agents): ${invId ? DB.inventions.find(i=>i.id===invId)?.title : 'standalone'}`);
 
-    // Deep AI-powered reference extraction (runs in background, saves all found refs with links)
-    extractAndStorePriorArtDeep(results, invId).then(count => {
-      if (count > 0) {
-        logActivity(`Auto-saved ${count} prior art references from FTO search`);
-        renderAll();
+    // Deep AI-powered reference extraction — saves all found refs with links
+    const refCount = await extractAndStorePriorArtDeep(results, invId);
+    if (refCount > 0) {
+      logActivity(`Auto-saved ${refCount} prior art references from Phase 1`);
+      renderAll();
+    }
+
+    // ── PHASE 2: REFINED DEEP SEARCH ──────────────────────────────────────
+    consoleLog('system', '🎯 Phase 2: Running refined search based on Phase 1 findings...', 'success');
+
+    // Collect the most relevant refs found in Phase 1
+    const phase1Refs = DB.priorArt
+      .filter(p => p.invId === invId && p.autoExtracted)
+      .sort((a, b) => (a.risk === 'high' ? 0 : a.risk === 'medium' ? 1 : 2) - (b.risk === 'high' ? 0 : b.risk === 'medium' ? 1 : 2))
+      .slice(0, 8);
+
+    if (phase1Refs.length >= 2) {
+      try {
+        const refinedSearch = await callAgent(
+          `You are a patent search strategist conducting a REFINED second-pass search.
+
+INVENTION CLAIMS:
+${claims.substring(0, 600)}
+
+PHASE 1 RESULTS — These ${phase1Refs.length} references were the most relevant found:
+${phase1Refs.map((r, i) => `[${i+1}] ${r.title} (${r.risk} risk)\n    ${r.assignee || ''}\n    ${r.abstract || ''}\n    URL: ${r.url || 'N/A'}`).join('\n\n')}
+
+ORIGINAL SYNONYMS USED:
+${Object.entries(synonymMap).map(([k,v]) => `${k} → ${v.join(', ')}`).join('\n')}
+
+Now conduct a DEEPER, more targeted search:
+1. Look at the specific terminology and CPC classes used in the Phase 1 patents above
+2. Search for RELATED patents by the same assignees, in the same CPC classes, or citing/cited-by these patents
+3. Search for any continuation, divisional, or family members of the top threats
+4. Find any references these Phase 1 patents CITE that could also be relevant
+5. Identify any very recent filings (2023-2025) in the same space that Phase 1 may have missed
+
+For each new reference found, provide:
+- Patent/paper number and title
+- URL (Google Patents or DOI link)
+- Why it's relevant to our claims
+- Risk level: HIGH / MEDIUM / LOW
+
+Focus on finding what Phase 1 MISSED.`, 'RefinedSearch'
+        );
+
+        results.refined = refinedSearch;
+        consoleLog('system', 'Phase 2 refined search complete ✓', 'success');
+
+        // Extract refs from Phase 2 and save
+        const phase2Text = refinedSearch || '';
+        extractAndStorePriorArt(phase2Text, invId);
+
+        // Update the search record with Phase 2 results
+        searchRecord.results.refined = refinedSearch;
+        searchRecord.phase2 = true;
+        save();
+        renderSearchResults(searchRecord);
+
+      } catch(e) {
+        consoleLog('system', `Phase 2 refined search skipped: ${e.message}`, 'warn');
       }
-    });
+    } else {
+      consoleLog('system', 'Phase 2 skipped — not enough Phase 1 refs to refine', 'warn');
+    }
+
   } catch(err) {
     consoleLog('synthesis', `Synthesis error: ${err.message}`, 'error');
     renderSearchResults({ results, synthesis: 'Synthesis failed — see individual agent results.' });
@@ -2920,8 +3038,8 @@ async function _callAgentDirect(prompt, agentName, options = {}, retries = 4) {
 
 function renderSearchResults(record) {
   const area = document.getElementById('search-results-area');
-  const tabs    = ['synthesis','compare','uspto','academic','intl','comp','asia','standards','ws'];
-  const labels  = ['🎯 Synthesis','🔬 Claim Compare','🏛 USPTO','📖 Academic','🌍 WIPO/EPO','🏢 Competitors','🌏 CN/JP/KR','📡 Standards','🗺 White Space'];
+  const tabs    = ['synthesis','refined','compare','uspto','academic','intl','comp','asia','standards','ws'];
+  const labels  = ['🎯 Synthesis','🎯 Phase 2 Refined','🔬 Claim Compare','🏛 USPTO','📖 Academic','🌍 WIPO/EPO','🏢 Competitors','🌏 CN/JP/KR','📡 Standards','🗺 White Space'];
   const r = record.results || {};
 
   // Build risk badge for synthesis tab
@@ -3818,7 +3936,7 @@ Search Google Patents (patents.google.com) for patents and patent applications r
 INVENTION CLAIMS:
 ${claims}
 
-KEYWORDS: ${keywords}
+KEYWORDS (with synonyms): ${expandedKeywords || keywords}
 
 Perform multiple targeted searches:
 1. Search: patents.google.com with query: ${keywords}
