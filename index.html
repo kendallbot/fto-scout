@@ -2072,8 +2072,8 @@ function setAgentStatus(id, status, emoji) {
 // No key required. Updated through 12/31/2024.
 // ══════════════════════════════════════════════════════════════════════════
 
-// Proxy URL — set this after deploying the Cloudflare Worker
-const PROXY_URL = DB.settings?.proxyUrl || localStorage.getItem('ftoscout_proxy') || '';
+// Proxy URL — routes USPTO & arXiv through Cloudflare Worker to avoid CORS
+const PROXY_URL = DB.settings?.proxyUrl || localStorage.getItem('ftoscout_proxy') || 'https://fto-proxy.kendalllarkin.workers.dev';
 function getUSPTOBase() {
   return PROXY_URL ? `${PROXY_URL}/uspto-search/api/v1` : 'https://search.patentsview.org/api/v1';
 }
