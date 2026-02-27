@@ -2845,7 +2845,25 @@ Patentability: STRONG / MODERATE / WEAK. FTO: CLEAR / CAUTION / BLOCKED.`;
   renderAll();
 }
 
+// Rate limit queue — ensures only 1 Claude call runs at a time
+let _agentQueue = Promise.resolve();
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function callAgent(prompt, agentName, options = {}) {
+  // Queue calls sequentially to avoid rate limits
+  const result = new Promise((resolve, reject) => {
+    _agentQueue = _agentQueue.then(async () => {
+      try {
+        const r = await _callAgentDirect(prompt, agentName, options);
+        resolve(r);
+      } catch(e) { reject(e); }
+    });
+  });
+  return result;
+}
+
+async function _callAgentDirect(prompt, agentName, options = {}, retries = 3) {
   const body = {
     model: options.model || 'claude-sonnet-4-20250514',
     max_tokens: options.maxTokens || 4000,
@@ -2869,8 +2887,20 @@ async function callAgent(prompt, agentName, options = {}) {
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `HTTP ${response.status}`);
+    const msg = err.error?.message || `HTTP ${response.status}`;
+
+    // Retry on rate limit (429) or overloaded (529)
+    if ((response.status === 429 || response.status === 529 || msg.includes('rate limit')) && retries > 0) {
+      const waitSec = (4 - retries) * 15; // 15s, 30s, 45s
+      consoleLog(agentName || 'system', `Rate limited — waiting ${waitSec}s then retrying... (${retries} left)`, 'warn');
+      await sleep(waitSec * 1000);
+      return _callAgentDirect(prompt, agentName, options, retries - 1);
+    }
+    throw new Error(msg);
   }
+
+  // Small delay after each successful call to stay under rate limits
+  await sleep(2000);
 
   const data = await response.json();
   return data.content
@@ -3738,21 +3768,26 @@ async function searchArxiv(query, options = {}) {
   const { maxResults = 8 } = options;
   const encoded = encodeURIComponent(query);
   const url = `https://export.arxiv.org/api/query?search_query=all:${encoded}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`arXiv error: ${resp.status}`);
-  const text = await resp.text();
-  // Parse atom XML
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(text, 'text/xml');
-  const entries = [...xml.querySelectorAll('entry')];
-  return entries.map(e => ({
-    title: e.querySelector('title')?.textContent?.trim(),
-    authors: [...e.querySelectorAll('author name')].map(a => a.textContent).join(', '),
-    summary: e.querySelector('summary')?.textContent?.trim()?.substring(0, 400),
-    published: e.querySelector('published')?.textContent?.substring(0, 10),
-    url: e.querySelector('id')?.textContent?.trim(),
-    categories: [...e.querySelectorAll('category')].map(c => c.getAttribute('term')).join(', ')
-  }));
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`arXiv error: ${resp.status}`);
+    const text = await resp.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'text/xml');
+    const entries = [...xml.querySelectorAll('entry')];
+    return entries.map(e => ({
+      title: e.querySelector('title')?.textContent?.trim(),
+      authors: [...e.querySelectorAll('author name')].map(a => a.textContent).join(', '),
+      summary: e.querySelector('summary')?.textContent?.trim()?.substring(0, 400),
+      published: e.querySelector('published')?.textContent?.substring(0, 10),
+      url: e.querySelector('id')?.textContent?.trim(),
+      categories: [...e.querySelectorAll('category')].map(c => c.getAttribute('term')).join(', ')
+    }));
+  } catch(e) {
+    // CORS or network error — return empty, Claude web search will cover academic papers
+    consoleLog('academic', `arXiv direct API unavailable (${e.message}) — Claude will web-search instead`, 'warn');
+    return [];
+  }
 }
 
 function formatArxivResults(results) {
