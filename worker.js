@@ -10,7 +10,8 @@ const ALLOWED_APIS = [
   'https://api.lens.org',
   'https://api.openalex.org',
   'https://api.semanticscholar.org',
-  'https://api.crossref.org'
+  'https://api.crossref.org',
+  'https://api.uspto.gov'
 ];
 
 function corsHeaders(origin) {
@@ -65,6 +66,26 @@ export default {
         const resp = await fetch(usptoUrl, {
           method: request.method,
           headers: { 'Content-Type': 'application/json' },
+          body: request.method === 'POST' ? await request.text() : undefined
+        });
+        const data = await resp.text();
+        return new Response(data, {
+          status: resp.status,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+        });
+      }
+
+      // ── USPTO Open Data Portal (ODP) API ──
+      if (path.startsWith('/uspto-odp/')) {
+        const odpPath = path.replace('/uspto-odp/', '');
+        const odpUrl = `https://api.uspto.gov/${odpPath}${url.search}`;
+        const apiKey = request.headers.get('x-api-key') || '';
+        const resp = await fetch(odpUrl, {
+          method: request.method,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(apiKey ? { 'x-api-key': apiKey } : {})
+          },
           body: request.method === 'POST' ? await request.text() : undefined
         });
         const data = await resp.text();
@@ -145,7 +166,7 @@ export default {
         });
       }
 
-      return new Response(JSON.stringify({ error: 'Unknown endpoint', available: ['/uspto/', '/arxiv/', '/lens/', '/scholar/', '/proxy'] }), {
+      return new Response(JSON.stringify({ error: 'Unknown endpoint', available: ['/uspto-odp/', '/uspto/', '/arxiv/', '/lens/', '/scholar/', '/proxy'] }), {
         status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
       });
 
