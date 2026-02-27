@@ -1247,6 +1247,11 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
                   <option value="deep">Deep</option>
                 </select>
               </div>
+              <div class="form-group" style="margin-top:12px">
+                <label>API PROXY URL (CLOUDFLARE WORKER)</label>
+                <input type="text" id="settings-proxy" placeholder="https://fto-proxy.your-subdomain.workers.dev" />
+                <div style="font-size:10px;color:var(--text3);margin-top:4px">Routes USPTO & arXiv API calls through your proxy to bypass CORS. Deploy worker.js to Cloudflare Workers.</div>
+              </div>
               <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save Settings</button>
             </div>
             <div class="card" style="margin-top:16px">
@@ -2067,7 +2072,15 @@ function setAgentStatus(id, status, emoji) {
 // No key required. Updated through 12/31/2024.
 // ══════════════════════════════════════════════════════════════════════════
 
-const USPTO_BASE = 'https://search.patentsview.org/api/v1';
+// Proxy URL — set this after deploying the Cloudflare Worker
+const PROXY_URL = DB.settings?.proxyUrl || localStorage.getItem('ftoscout_proxy') || '';
+function getUSPTOBase() {
+  return PROXY_URL ? `${PROXY_URL}/uspto-search/api/v1` : 'https://search.patentsview.org/api/v1';
+}
+function getArxivBase() {
+  return PROXY_URL ? `${PROXY_URL}/arxiv` : 'https://export.arxiv.org';
+}
+const USPTO_BASE_FALLBACK = 'https://search.patentsview.org/api/v1';
 
 async function searchUSPTODirect(keywords, options = {}) {
   const { size = 10, dateFrom = '2018-01-01', assignees = [] } = options;
@@ -2098,7 +2111,7 @@ async function searchUSPTODirect(keywords, options = {}) {
     'application.filing_date'
   ];
 
-  const url = `${USPTO_BASE}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
+  const url = `${getUSPTOBase()}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
 
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`USPTO API error: ${resp.status}`);
@@ -2124,7 +2137,7 @@ async function searchUSPTOAbstract(keywords, options = {}) {
     'application.filing_date'
   ];
 
-  const url = `${USPTO_BASE}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
+  const url = `${getUSPTOBase()}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
 
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`USPTO API error: ${resp.status}`);
@@ -2150,7 +2163,7 @@ async function searchUSPTOByAssignee(assigneeName, keywords, options = {}) {
     'application.filing_date'
   ];
 
-  const url = `${USPTO_BASE}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
+  const url = `${getUSPTOBase()}/patent/?q=${encodeURIComponent(JSON.stringify(q))}&f=${encodeURIComponent(JSON.stringify(fields))}&o=${encodeURIComponent(JSON.stringify({ size, sort: [{ patent_date: 'desc' }] }))}`;
 
   const resp = await fetch(url);
   if (!resp.ok) return [];
@@ -4009,7 +4022,10 @@ function saveProfile() {
 function saveSettings() {
   DB.settings.depth = document.getElementById('settings-depth').value;
   DB.settings.defaultCompetitors = document.getElementById('settings-competitors').value;
-  save(); alert('Settings saved.');
+  const proxyVal = document.getElementById('settings-proxy').value.trim().replace(/\/+$/, '');
+  DB.settings.proxyUrl = proxyVal;
+  localStorage.setItem('ftoscout_proxy', proxyVal);
+  save(); alert('Settings saved.' + (proxyVal ? ' Proxy URL set — USPTO & arXiv will route through it.' : ''));
 }
 
 function loadSettings() {
@@ -4018,6 +4034,7 @@ function loadSettings() {
   document.getElementById('settings-entity').value = DB.profile.entity || '';
   document.getElementById('settings-depth').value = DB.settings.depth || 'standard';
   document.getElementById('settings-competitors').value = DB.settings.defaultCompetitors || '';
+  document.getElementById('settings-proxy').value = DB.settings.proxyUrl || localStorage.getItem('ftoscout_proxy') || '';
   if (DB.settings.lensKey) document.getElementById('settings-lens-key').value = '••••••••';
   if (DB.settings.epoKey) document.getElementById('settings-epo-key').value = '••••••••';
   updateSourceStatuses();
@@ -4108,7 +4125,7 @@ async function testEPO() {
 async function searchArxiv(query, options = {}) {
   const { maxResults = 8 } = options;
   const encoded = encodeURIComponent(query);
-  const url = `https://export.arxiv.org/api/query?search_query=all:${encoded}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
+  const url = `${getArxivBase()}/api/query?search_query=all:${encoded}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`arXiv error: ${resp.status}`);
