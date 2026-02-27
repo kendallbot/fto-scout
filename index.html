@@ -656,6 +656,58 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; 
   border-radius: var(--radius); cursor: pointer; transition: all .2s;
 }
 .search-upload-banner:hover { border-color: var(--accent); background: rgba(0,229,195,.15); }
+
+/* ── KEYWORD HITS PANEL ── */
+.kw-hits-grid { display: flex; flex-direction: column; gap: 12px; }
+
+.kw-hit-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--s2); overflow: hidden;
+}
+.kw-hit-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.kw-hit-term {
+  font-family: var(--mono); font-weight: 700; font-size: 13px;
+}
+.kw-hit-synonyms {
+  font-size: 10px; color: var(--text3); font-family: var(--mono);
+}
+.kw-hit-count {
+  margin-left: auto; font-family: var(--mono); font-size: 11px; font-weight: 700;
+}
+.kw-hit-count.has-hits { color: var(--danger); }
+.kw-hit-count.no-hits { color: var(--text3); }
+
+.kw-hit-refs { padding: 0; }
+.kw-hit-ref {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  font-size: 11px; transition: background .15s;
+}
+.kw-hit-ref:last-child { border-bottom: none; }
+.kw-hit-ref:hover { background: var(--accent-dim); }
+.kw-hit-ref a {
+  color: var(--accent); text-decoration: none; font-weight: 600;
+}
+.kw-hit-ref a:hover { text-decoration: underline; }
+.kw-hit-risk {
+  flex-shrink: 0; font-family: var(--mono); font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+}
+.kw-hit-risk.high { background: var(--danger-dim); color: var(--danger); }
+.kw-hit-risk.medium { background: var(--warn-dim); color: var(--warn); }
+.kw-hit-risk.low { background: rgba(0,229,195,.1); color: var(--success); }
+.kw-hit-matched {
+  background: rgba(245,197,24,.15); color: var(--warn); padding: 0 3px;
+  border-radius: 3px; font-weight: 600;
+}
+.kw-no-hit {
+  padding: 10px 14px; font-size: 11px; color: var(--text3);
+  font-style: italic;
+}
 </style>
 
 <!-- Document parsing libraries -->
@@ -2880,7 +2932,9 @@ Patentability: STRONG / MODERATE / WEAK. FTO: CLEAR / CAUTION / BLOCKED.`;
       invId,
       date: new Date().toISOString(),
       claims: claims.substring(0, 300),
-      keywords,
+      keywords: expandedKeywords || keywords,
+      originalKeywords: keywords,
+      synonymMap: synonymMap,
       keywordData: window._extractedKeywords || null,
       agentCount: activeAgents,
       results,
@@ -3049,10 +3103,153 @@ async function _callAgentDirect(prompt, agentName, options = {}, retries = 4) {
   return result;
 }
 
+// ── KEYWORD HITS: cross-reference keywords/synonyms against found prior art ──
+
+function buildKeywordHitMap(record) {
+  const synonymMap = record.synonymMap || window._synonymMap || {};
+  // Use original keywords (not expanded) as the primary terms
+  const kwSource = record.originalKeywords || record.keywords || '';
+  const keywords = kwSource.split(',').map(k => k.trim()).filter(Boolean);
+
+  // Build lookup: each original keyword + its synonyms
+  const termGroups = {};
+  keywords.forEach(kw => {
+    const lower = kw.toLowerCase();
+    // Find if this keyword has synonyms
+    const syns = synonymMap[kw] || synonymMap[lower] || [];
+    // Also check partial matches in synonym map keys
+    const matchedKey = Object.keys(synonymMap).find(k =>
+      k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase())
+    );
+    const extraSyns = matchedKey ? (synonymMap[matchedKey] || []) : [];
+    termGroups[kw] = {
+      original: kw,
+      synonyms: [...new Set([...syns, ...extraSyns])],
+      allTerms: [kw, ...new Set([...syns, ...extraSyns])],
+      hits: [] // will hold matched prior art refs
+    };
+  });
+
+  // Get all prior art refs linked to this search's invention
+  const invId = record.invId || '';
+  const refs = DB.priorArt.filter(p =>
+    !invId || !p.invId || p.invId === invId
+  );
+
+  // Also scan all agent result text for additional references
+  const allResultText = Object.values(record.results || {})
+    .filter(v => typeof v === 'string')
+    .join('\n').toLowerCase();
+
+  // Match each term group against refs and result text
+  Object.values(termGroups).forEach(group => {
+    group.allTerms.forEach(term => {
+      const termLower = term.toLowerCase();
+      // Check prior art library refs
+      refs.forEach(ref => {
+        const searchText = [ref.title, ref.abstract, ref.assignee]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (searchText.includes(termLower)) {
+          // Avoid duplicate hits for same ref
+          if (!group.hits.find(h => h.id === ref.id)) {
+            group.hits.push({
+              ...ref,
+              matchedTerm: term,
+              isOriginal: term.toLowerCase() === group.original.toLowerCase()
+            });
+          }
+        }
+      });
+    });
+
+    // Sort: high risk first, then medium, then low
+    group.hits.sort((a, b) => {
+      const order = { high: 0, medium: 1, low: 2 };
+      return (order[a.risk] || 2) - (order[b.risk] || 2);
+    });
+  });
+
+  return termGroups;
+}
+
+function renderKeywordHits(record) {
+  const hitMap = buildKeywordHitMap(record);
+  const groups = Object.values(hitMap);
+
+  if (!groups.length) {
+    return '<div style="color:var(--text3);text-align:center;padding:30px">No keywords to analyze. Run a search first.</div>';
+  }
+
+  // Sort: groups with hits first, then by hit count descending
+  groups.sort((a, b) => b.hits.length - a.hits.length);
+
+  const totalHits = groups.reduce((sum, g) => sum + g.hits.length, 0);
+  const hitGroups = groups.filter(g => g.hits.length > 0).length;
+
+  let html = `
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">🔑 Keyword Claim Match Analysis</div>
+      <span class="pill pill-${hitGroups > groups.length/2 ? 'red' : hitGroups > 0 ? 'yellow' : 'green'}">
+        ${hitGroups}/${groups.length} keywords matched
+      </span>
+      <span style="font-size:11px;color:var(--text2)">${totalHits} total reference hits</span>
+    </div>
+    <div class="kw-hits-grid">
+  `;
+
+  groups.forEach(group => {
+    const hasHits = group.hits.length > 0;
+    html += `
+      <div class="kw-hit-card" style="${hasHits ? 'border-color:var(--warn)' : ''}">
+        <div class="kw-hit-header" style="${hasHits ? 'background:var(--warn-dim)' : ''}">
+          <span class="kw-hit-term" style="${hasHits ? 'color:var(--warn)' : 'color:var(--text2)'}">${group.original}</span>
+          ${group.synonyms.length ? `<span class="kw-hit-synonyms">→ ${group.synonyms.join(', ')}</span>` : ''}
+          <span class="kw-hit-count ${hasHits ? 'has-hits' : 'no-hits'}">
+            ${hasHits ? `${group.hits.length} HIT${group.hits.length > 1 ? 'S' : ''}` : 'NO HITS'}
+          </span>
+        </div>
+        <div class="kw-hit-refs">
+    `;
+
+    if (hasHits) {
+      group.hits.forEach(hit => {
+        const url = hit.url || '';
+        const titleDisplay = hit.title || 'Unknown Reference';
+        // Highlight the matched term in the title and abstract
+        const matchRe = new RegExp(`(${group.allTerms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+        const highlightedTitle = titleDisplay.replace(matchRe, '<span class="kw-hit-matched">$1</span>');
+        const highlightedAbstract = (hit.abstract || '').replace(matchRe, '<span class="kw-hit-matched">$1</span>');
+
+        html += `
+          <div class="kw-hit-ref">
+            <span class="kw-hit-risk ${hit.risk || 'medium'}">${hit.risk || '?'}</span>
+            <div style="flex:1;min-width:0">
+              <div>${url ? `<a href="${url}" target="_blank">${highlightedTitle}</a>` : highlightedTitle}</div>
+              ${hit.assignee ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">${hit.assignee}</div>` : ''}
+              ${highlightedAbstract ? `<div style="font-size:10px;color:var(--text2);margin-top:4px;line-height:1.5">${highlightedAbstract}</div>` : ''}
+              <div style="font-size:9px;color:var(--text3);margin-top:3px;font-family:var(--mono)">
+                Matched: <span class="kw-hit-matched">${hit.matchedTerm}</span>
+                ${!hit.isOriginal ? '(synonym)' : '(exact)'}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      html += `<div class="kw-no-hit">No prior art references matched this keyword or its synonyms</div>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  html += `</div>`;
+  return html;
+}
+
 function renderSearchResults(record) {
   const area = document.getElementById('search-results-area');
-  const tabs    = ['synthesis','refined','compare','uspto','academic','intl','comp','asia','standards','ws'];
-  const labels  = ['🎯 Synthesis','🎯 Phase 2 Refined','🔬 Claim Compare','🏛 USPTO','📖 Academic','🌍 WIPO/EPO','🏢 Competitors','🌏 CN/JP/KR','📡 Standards','🗺 White Space'];
+  const tabs    = ['synthesis','kwhits','refined','compare','uspto','academic','intl','comp','asia','standards','ws'];
+  const labels  = ['🎯 Synthesis','🔑 Keyword Hits','🎯 Phase 2 Refined','🔬 Claim Compare','🏛 USPTO','📖 Academic','🌍 WIPO/EPO','🏢 Competitors','🌏 CN/JP/KR','📡 Standards','🗺 White Space'];
   const r = record.results || {};
 
   // Build risk badge for synthesis tab
@@ -3072,7 +3269,9 @@ function renderSearchResults(record) {
     standards: '🌐 Web',
     ws: '🤖 Claude',
     compare: '🤖 Claude',
-    synthesis: '🤖 Claude'
+    synthesis: '🤖 Claude',
+    kwhits: '🔑 Local',
+    refined: '🤖 Claude'
   };
 
   area.innerHTML = `
@@ -3090,9 +3289,11 @@ function renderSearchResults(record) {
       const rawContent = (t === 'synthesis' ? (r.synthesis || record.synthesis) : r[t]) || 'No results for this agent.';
       const isCompare = t === 'compare';
       const isSynth = t === 'synthesis';
+      const isKwHits = t === 'kwhits';
       let formatted;
-      if (isCompare && window._lastComparisonData) {
-        // Render visual matrix for compare tab
+      if (isKwHits) {
+        formatted = renderKeywordHits(record);
+      } else if (isCompare && window._lastComparisonData) {
         formatted = renderComparisonMatrix(window._lastComparisonData) || renderMarkdownLight(rawContent);
       } else if (isSynth) {
         formatted = renderMarkdownLight(rawContent);
